@@ -4,7 +4,7 @@ import { store } from '../store.js';
 import { photos } from '../photos.js';
 import { icon, TYPE_ICONS } from '../icons.js';
 import { esc, fmtNum, plural, isIOS, isStandalone, isEmbedded } from '../util.js';
-import { totals, longestDailyStreak } from '../stats.js';
+import { totals } from '../stats.js';
 import { segmented, toggle } from '../components.js';
 import { openSheet, confirmDialog } from '../sheet.js';
 import { readBackup } from '../backup.js';
@@ -14,7 +14,7 @@ import { applyTheme } from '../theme.js';
 import { haptic, sound, unlockAudio } from '../effects.js';
 import { TYPE_COLORS } from '../store.js';
 
-export const APP_VERSION = '1.0.2 · Stage 1';
+export const APP_VERSION = '1.1.0 · Stage 2';
 
 let installPrompt = null; // Chrome/Android "beforeinstallprompt" event
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -46,7 +46,7 @@ export function renderProfile(el) {
       <div class="profile-stats">
         <div><b class="c-pink">${fmtNum(sum.count)}</b><span>Workouts</span></div>
         <div><b class="c-purple">${fmtNum(Math.round(sum.minutes / 60))}</b><span>Hours</span></div>
-        <div><b class="c-cyan">${fmtNum(longestDailyStreak(all))}</b><span>Best streak</span></div>
+        <div><b class="c-cyan">${fmtNum(store.derived().records.weeklyStreak.value)}<small>wk</small></b><span>Best streak</span></div>
       </div>
     </article>
 
@@ -64,6 +64,7 @@ export function renderProfile(el) {
         <span class="set-label">${icon('calendar')} Week starts</span>
         ${segmented('weekStart', [[1, 'Mon'], [0, 'Sun']], s.weekStart, { ariaLabel: 'Week starts on' })}
       </div>
+      <p class="muted small set-note">Changing this recounts your weekly streaks.</p>
 
       <div class="set-row">
         <span class="set-label">${icon('ruler')} Units</span>
@@ -94,8 +95,8 @@ export function renderProfile(el) {
     <article class="card">
       <div class="card-head"><span class="label">Backup</span><span class="label label-quiet">Last: ${esc(lastBackup)}</span></div>
       <p class="muted small">${isEmbedded()
-        ? 'Export copies every workout, setting and photo as text. Paste it into a note or an email to yourself. To restore, tap Export and paste it back in.'
-        : 'One file with every workout, setting and photo. Save it to Files or iCloud Drive, or email it to yourself.'}</p>
+        ? 'Export copies every workout, goal, rest day, setting and photo as text. Paste it into a note or an email to yourself. To restore, tap Export and paste it back in.'
+        : 'One file with every workout, goal, rest day, setting and photo. Save it to Files or iCloud Drive, or email it to yourself.'}</p>
       <div class="btn-row">
         <button type="button" class="btn btn-secondary" data-action="export">${icon(isEmbedded() ? 'copy' : 'download')} Export</button>
         <button type="button" class="btn btn-secondary" data-action="import">${icon('upload')} Import</button>

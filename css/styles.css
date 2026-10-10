@@ -968,7 +968,7 @@ body.has-overlay .toast-root { bottom: calc(env(safe-area-inset-bottom) + 96px);
 .filter-row::-webkit-scrollbar { display: none; }
 
 .day-group { scroll-margin-top: calc(env(safe-area-inset-top) + 12px); border-radius: var(--radius); transition: box-shadow .4s; }
-.day-group.flash { box-shadow: 0 0 0 2px var(--cyan), 0 0 22px rgb(34 228 240 / var(--glow-a)); }
+.day-group.flash, .flash { box-shadow: 0 0 0 2px var(--cyan), 0 0 22px rgb(34 228 240 / var(--glow-a)); }
 .day-head {
   display: flex; justify-content: space-between; align-items: baseline;
   font-size: 13px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase;
@@ -1141,6 +1141,163 @@ body.has-overlay .toast-root { bottom: calc(env(safe-area-inset-bottom) + 96px);
 .add-type .input { flex: 1; min-width: 0; }
 
 .noscript { padding: 40px 20px; text-align: center; }
+
+/* ==========================================================================
+   Stage 2: goals, streaks, rest days, records
+   ========================================================================== */
+
+/* ---- Rings: closing pop + check on a closed stat ---- */
+
+.ring-arc.pop { animation: ring-pop .8s var(--ease-out); }
+@keyframes ring-pop {
+  0% { stroke-opacity: 1; }
+  30% { stroke-opacity: .55; }
+  60% { stroke-opacity: 1; }
+}
+.rings-wrap:has(.ring-arc.pop) { animation: rings-bump .6s var(--spring); }
+@keyframes rings-bump { 40% { transform: scale(1.06); } }
+.rs-check { display: inline-grid; vertical-align: -2px; margin-right: 3px; color: var(--c); }
+.rs-check .icon { width: 14px; height: 14px; stroke-width: 3; filter: drop-shadow(0 0 4px var(--c)); }
+
+/* ---- Streak card ---- */
+
+.streak-pills { display: inline-flex; gap: 6px; }
+.pill-streak, .pill-freeze { gap: 4px; font-size: 12px; padding: 3px 9px; }
+.pill-streak { color: var(--pink); border-color: color-mix(in srgb, var(--pink) 40%, transparent); background: color-mix(in srgb, var(--pink) 10%, var(--card-2)); }
+.pill-freeze { color: var(--blue); border-color: color-mix(in srgb, var(--blue) 40%, transparent); background: color-mix(in srgb, var(--blue) 10%, var(--card-2)); }
+.pill-streak .icon, .pill-freeze .icon { width: 13px; height: 13px; }
+
+.day.rest .day-dot {
+  opacity: 1;
+  border-color: var(--purple);
+  color: var(--purple);
+  background: color-mix(in srgb, var(--purple) 12%, transparent);
+  box-shadow: 0 0 8px rgb(167 123 255 / calc(var(--glow-a) * .6));
+}
+.day.today.rest .day-dot { border-color: var(--pink); }
+.day-dot .icon { width: 15px; height: 15px; }
+
+.strip-foot {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  text-transform: none; letter-spacing: 0; font-weight: 500; font-size: 13px;
+  text-align: center;
+}
+.foot-line .icon { width: 15px; height: 15px; vertical-align: -3px; }
+.foot-main { color: var(--text); font-weight: 650; }
+.foot-main .icon { color: var(--pink); filter: drop-shadow(0 0 4px rgb(255 45 120 / var(--glow-a))); }
+.foot-repair { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+.foot-repair .btn { min-height: 34px; }
+
+.day-sheet { display: flex; flex-direction: column; gap: 8px; padding-bottom: 4px; }
+
+/* ---- Tiles ---- */
+
+.tile-clip { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile-done { display: inline-flex; align-items: center; gap: 4px; color: var(--lime); }
+.tile-done .icon { width: 26px; height: 26px; stroke-width: 3; filter: drop-shadow(0 0 6px rgb(182 242 60 / var(--glow-a))); }
+.label.c-pink-text { color: var(--pink); text-shadow: 0 0 10px rgb(255 45 120 / var(--glow-a)); }
+
+/* ---- Goal rows ---- */
+
+.goal-row {
+  display: flex; flex-direction: column; gap: 6px;
+  width: 100%;
+  padding: 12px 0 2px;
+  border: 0; border-top: 1px solid var(--border);
+  background: none;
+  color: var(--text);
+  text-align: left;
+  border-radius: 0;
+  transition: background .15s;
+}
+.target-list > .goal-row:first-child { border-top: 0; padding-top: 0; }
+.goal-row:active { background: var(--card-2); }
+.goal-row.flash { border-radius: 12px; }
+.goal-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.goal-top .target-name { min-width: 0; }
+.goal-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.goal-pct { color: var(--c); font-weight: 750; font-variant-numeric: tabular-nums; flex: none; display: inline-grid; }
+.goal-pct .icon { width: 20px; height: 20px; stroke-width: 3; filter: drop-shadow(0 0 5px var(--c)); }
+.goal-row.ended, .goal-row.upcoming { opacity: .7; }
+.goal-row .bar { margin-top: 0; }
+.card-note { margin-top: 14px; }
+.add-goal { margin-top: 10px; padding-left: 0; color: var(--cyan); }
+.add-goal .icon { color: var(--cyan); }
+.target-info .muted .icon { width: 14px; height: 14px; color: var(--lime); vertical-align: -2px; }
+
+/* ---- Streaks card ---- */
+
+.streak-stats { border-top: 0; padding-top: 0; }
+.streak-stats small { font-size: 11px; }
+.profile-stats b small { font-size: 12px; margin-left: 2px; color: var(--text-3); font-weight: 600; }
+.freeze-progress { display: flex; flex-direction: column; gap: 4px; margin-top: 16px; }
+.week-dots { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
+.week-dot {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center;
+  border: 2px solid var(--text-3); opacity: .35;
+}
+.week-dot .icon { width: 13px; height: 13px; stroke-width: 3; }
+.week-dot.met { opacity: 1; border-color: var(--pink); color: var(--pink); background: color-mix(in srgb, var(--pink) 14%, transparent); box-shadow: 0 0 8px rgb(255 45 120 / calc(var(--glow-a) * .6)); }
+.week-dot.frozen { opacity: 1; border-color: var(--blue); color: var(--blue); background: color-mix(in srgb, var(--blue) 14%, transparent); }
+.week-dot.open { opacity: .9; border-style: dashed; border-color: var(--pink); }
+
+/* ---- Personal records ---- */
+
+.record-list { display: flex; flex-direction: column; }
+.record-row {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  padding: 10px 0;
+  border: 0; border-top: 1px solid var(--border);
+  background: none; color: var(--text);
+  text-align: left;
+}
+.record-row:first-child { border-top: 0; }
+button.record-row:active { background: var(--card-2); }
+.record-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.record-label { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-weight: 650; font-size: 15px; }
+.record-value { font-size: 20px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.record-value small { font-size: 12px; color: var(--text-2); font-weight: 600; }
+.pill-new { color: var(--pink); border-color: color-mix(in srgb, var(--pink) 45%, transparent); font-size: 10px; letter-spacing: .06em; }
+.pill-current { color: var(--lime); border-color: color-mix(in srgb, var(--lime) 45%, transparent); font-size: 10px; }
+.pill-pr { color: var(--yellow); border-color: color-mix(in srgb, var(--yellow) 45%, transparent); gap: 3px; }
+.pill-pr .icon { width: 12px; height: 12px; }
+
+/* ---- Archived goals ---- */
+
+.archived-link { width: 100%; padding: 8px 16px; }
+.archived-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border); }
+.archived-row:first-child { border-top: 0; }
+.archived-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+/* ---- Goal sheet ---- */
+
+.goal-form { display: flex; flex-direction: column; gap: 20px; padding-bottom: 8px; }
+.chip-row-tight { margin-top: 0; }
+.date-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.date-pair label { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.goal-pin { border-top: 1px solid var(--border); min-height: 52px; }
+.goal-preview { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; background: var(--card-2); }
+.goal-preview .bar { margin-top: 0; }
+
+/* ---- Log sheet: "this save will…" chips ---- */
+
+.wins-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: -6px; }
+.win-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px; font-weight: 650;
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 14%, var(--card-2));
+  border: 1px solid color-mix(in srgb, var(--c) 45%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--c) calc(var(--glow-a) * 50%), transparent);
+  animation: banner-in .4s var(--spring);
+}
+.win-chip .icon { width: 15px; height: 15px; }
+
+.set-note { margin: -4px 0 6px; }
 
 /* ---- Small phones ------------------------------------------------------- */
 

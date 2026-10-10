@@ -1,8 +1,9 @@
 // Reusable bits of UI markup: progress rings, type badges, segmented controls.
 
-import { esc, clamp } from './util.js';
+import { esc, clamp, fmtNum, kmToUnit } from './util.js';
 import { icon } from './icons.js';
 import { store } from './store.js';
+import { parseKey, fmtShortDate } from './dates.js';
 
 const RADII = [53, 40, 27]; // outer → inner, in a 120×120 viewBox
 
@@ -19,7 +20,7 @@ export function ringsSVG(rings, { stroke = 11, label = 'Weekly progress rings' }
     const from = clamp(r.from ?? 0, 0, 1);
     return `
       <circle class="ring-track c-${r.color}" cx="60" cy="60" r="${R}" stroke-width="${stroke}"/>
-      <circle class="ring-arc c-${r.color}${p >= 1 ? ' closed' : ''}" cx="60" cy="60" r="${R}" stroke-width="${stroke}"
+      <circle class="ring-arc c-${r.color}${p >= 1 ? ' closed' : ''}${r.pop ? ' pop' : ''}" cx="60" cy="60" r="${R}" stroke-width="${stroke}"
         stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${(C * (1 - from)).toFixed(2)}"
         data-to="${(C * (1 - p)).toFixed(2)}"${p === 0 && from === 0 ? ' opacity="0"' : ''}/>`;
   }).join('');
@@ -69,4 +70,61 @@ export function segmented(action, options, selected, { ariaLabel = '' } = {}) {
 /** iOS-style on/off switch. */
 export function toggle(action, on, label) {
   return `<button type="button" class="switch${on ? ' on' : ''}" role="switch" aria-checked="${on}" aria-label="${esc(label)}" data-action="${action}"><span></span></button>`;
+}
+
+// ---- Goals ----
+
+/** Accent color per goal metric (matches the rings: workouts pink, minutes purple, days cyan). */
+export const METRIC_COLOR = { workouts: 'pink', minutes: 'purple', days: 'cyan', distance: 'lime', longestDistance: 'orange' };
+
+/** Unit word shown after a goal number ("min", "days", "mi"…). */
+export function goalUnit(metric, value = 2) {
+  if (metric === 'minutes') return 'min';
+  if (metric === 'days') return value === 1 ? 'day' : 'days';
+  if (metric === 'workouts') return value === 1 ? 'workout' : 'workouts';
+  return store.settings.units;
+}
+
+/** A goal number in her units: distances converted from km, others rounded. */
+export function goalNum(metric, value) {
+  if (metric === 'distance' || metric === 'longestDistance') {
+    const v = kmToUnit(value, store.settings.units);
+    return String(Math.round(v * 10) / 10);
+  }
+  return fmtNum(value);
+}
+
+const RACES = [[5, 'First 5K'], [10, 'First 10K'], [21.0975, 'First half marathon'], [42.195, 'First marathon']];
+
+/** Readable name for a goal, e.g. "600 min this month", "First 5K", "150 workouts in 2026". */
+export function goalLabel(goal) {
+  if (goal.name) return goal.name;
+  const n = goal.target;
+  const type = goal.typeId ? store.typeById(goal.typeId).label : '';
+  let text;
+  switch (goal.metric) {
+    case 'workouts': text = `${fmtNum(n)} ${type ? `${type} ` : ''}${n === 1 ? 'workout' : 'workouts'}`; break;
+    case 'minutes': text = `${fmtNum(n)} min${type ? ` of ${type}` : ''}`; break;
+    case 'days': text = `${fmtNum(n)} active ${n === 1 ? 'day' : 'days'}`; break;
+    case 'distance': text = `${type ? `${type} ` : ''}${goalNum('distance', n)} ${store.settings.units}`; break;
+    case 'longestDistance': {
+      const race = RACES.find(([km]) => Math.abs(n - km) <= km * 0.005);
+      text = race ? race[1] : `One ${goalNum('longestDistance', n)} ${store.settings.units} ${type || 'workout'}`;
+      break;
+    }
+    default: text = 'Goal';
+  }
+  if (goal.tier === 'short') return `${text} this week`;
+  if (goal.tier === 'medium') return `${text} this month`;
+  if (goal.start && goal.end) {
+    const y = goal.start.slice(0, 4);
+    if (goal.start === `${y}-01-01` && goal.end === `${y}-12-31`) return `${text} in ${y}`;
+    return `${text} by ${fmtShortDate(parseKey(goal.end))}`;
+  }
+  return text;
+}
+
+/** "120 / 600 min" style progress text for a goal. */
+export function goalProgressText(p) {
+  return `${goalNum(p.metric, p.value)} / ${goalNum(p.metric, p.target)} ${goalUnit(p.metric, p.target)}`;
 }

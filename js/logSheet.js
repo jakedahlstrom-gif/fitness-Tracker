@@ -7,11 +7,12 @@ import { store } from './store.js';
 import { photos, compressImage } from './photos.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { icon } from './icons.js';
-import { esc, kmToUnit, unitToKm, clamp } from './util.js';
-import { todayKey, addDaysKey, timeNow, startOfWeek } from './dates.js';
-import { weekStats } from './stats.js';
+import { esc, kmToUnit, unitToKm, clamp, plural, fmtNum } from './util.js';
+import { todayKey, addDaysKey, timeNow } from './dates.js';
+import { derive, milestones } from './progress.js';
+import { goalLabel } from './components.js';
 import { toast } from './toast.js';
-import { celebrateLog, haptic, sound } from './effects.js';
+import { celebrateLog, confetti, haptic, sound } from './effects.js';
 
 const FEELS = [[1, 'Rough'], [2, 'Meh'], [3, 'Okay'], [4, 'Good'], [5, 'Amazing']];
 const MOODS = ['😫', '😮‍💨', '😐', '🙂', '😄', '🤩', '💪', '🔥'];
@@ -43,14 +44,79 @@ export function defaultWorkout(date = null) {
   };
 }
 
-/** "2 of 3 this week — 1 to go" style message after logging. */
-function weekMessage() {
-  const s = store.settings;
-  const { count } = weekStats(store.workouts(), startOfWeek(new Date(), s.weekStart));
-  const target = s.targets.workouts;
-  if (count === target) return `Weekly goal hit: ${count} of ${target}! 🎯`;
-  if (count < target) return `${count} of ${target} this week · ${target - count} to go`;
-  return `${count} this week · above and beyond 🚀`;
+/** "2 of 3 this week · 1 more makes it 5 weeks" style message after logging. */
+function weekMessage(d) {
+  const t = d.weekly.thisWeek;
+  const n = d.weekly.current;
+  if (t.count < t.target) return `${t.count} of ${t.target} this week · ${t.toGo} more ${n > 0 ? `makes it ${n + 1} weeks` : 'starts a streak'}`;
+  if (t.count === t.target) return `Weekly goal hit! ${plural(n, 'week')} in a row 🎯`;
+  return `${t.count} this week · above and beyond 🚀`;
+}
+
+// ---- What a save earned (see milestones() in progress.js) ----
+
+const RECORD_NAMES = {
+  longestWorkout: 'Longest workout', bestWeek: 'Best week', bestMonth: 'Best month',
+  dailyStreak: 'Longest daily streak', weeklyStreak: 'Longest weekly streak',
+};
+const RECORD_CHIPS = {
+  longestWorkout: 'Longest workout ever', bestWeek: 'Best week ever', bestMonth: 'Best month ever',
+  dailyStreak: 'Longest daily streak', weeklyStreak: 'Longest weekly streak',
+};
+
+function recordValue(e) {
+  if (e.record === 'dailyStreak') return `${plural(e.value, 'day')} (was ${e.prev})`;
+  if (e.record === 'weeklyStreak') return `${plural(e.value, 'week')} (was ${e.prev})`;
+  return `${fmtNum(e.value)} min (was ${fmtNum(e.prev)})`;
+}
+
+/** Toast text for one event. */
+function eventText(e) {
+  switch (e.kind) {
+    case 'pr': return `New PR! ${RECORD_NAMES[e.record]}: ${recordValue(e)}`;
+    case 'goal':
+      if (e.tier === 'short') return `Weekly goal done: ${goalLabel(e.goal)}`;
+      if (e.tier === 'medium') return `Monthly goal done: ${goalLabel(e.goal)}`;
+      return `Goal complete: ${goalLabel(e.goal)}!`;
+    case 'freeze': return `Streak freeze earned (${e.freezes}/2) ❄️`;
+    case 'allRings': return 'All rings closed! ✨';
+    case 'weekMet': return e.streak > 1 ? `Week ${e.streak} locked in! 🔥` : 'Weekly goal hit · streak started 🔥';
+    case 'weekFilled': return `That fills in a week · streak is now ${plural(e.streak, 'week')}`;
+    case 'ring': return e.ring === 'minutes' ? 'Minutes ring closed!' : 'Active days ring closed!';
+    default: return '';
+  }
+}
+
+/** Short chip text for the live "this save will…" preview in the sheet. */
+function chipText(e) {
+  switch (e.kind) {
+    case 'pr': return [icon('trophy'), RECORD_CHIPS[e.record], 'yellow'];
+    case 'goal': return [icon('goals'), goalLabel(e.goal), 'lime'];
+    case 'freeze': return [icon('snowflake'), 'Earns a freeze', 'blue'];
+    case 'allRings': return [icon('flame'), 'Closes all rings', 'pink'];
+    case 'weekMet': return [icon('flame'), `Locks in week ${e.streak}`, 'pink'];
+    case 'weekFilled': return [icon('flame'), 'Fills in a week', 'pink'];
+    case 'ring': return [icon('flame'), e.ring === 'minutes' ? 'Closes minutes ring' : 'Closes active days ring', e.ring === 'minutes' ? 'purple' : 'cyan'];
+    default: return null;
+  }
+}
+
+/**
+ * Tell her what a save earned: one toast with the top event (+N more). Bigger events
+ * also get a haptic burst and confetti. Stage 3 swaps in tiered celebrations here.
+ */
+export function announce(events, fallback = null) {
+  if (!events.length) {
+    if (fallback) toast(fallback);
+    return;
+  }
+  const top = events[0];
+  toast(eventText(top) + (events.length > 1 ? ` · +${events.length - 1} more` : ''), { duration: 4000 });
+  if (top.size !== 'small') {
+    haptic('burst');
+    sound.success();
+    confetti({ x: innerWidth / 2, y: innerHeight * 0.3, count: top.size === 'big' ? 160 : 80, spread: 100, angle: 90, power: 12 });
+  }
 }
 
 /** Delete with a 5-second Undo. The photo is only removed once Undo expires. */
@@ -70,12 +136,15 @@ export function deleteWithUndo(id) {
  * @param {'fresh'|'new'|'edit'} o.mode
  * @param {object} [o.workout]  required for 'fresh' and 'edit'
  * @param {string} [o.date]     preset date for 'new'
+ * @param {object} [o.before]   store.derived() from before a hold-to-log, so the save can tell what it earned
  */
-export function openLogSheet({ mode = 'new', workout = null, date = null } = {}) {
+export function openLogSheet({ mode = 'new', workout = null, date = null, before = null } = {}) {
   const s = store.settings;
   const units = s.units;
   const draft = workout ? { ...workout } : defaultWorkout(date);
   let durationTouched = mode === 'edit';
+  let distanceTouched = false; // only re-read the distance box if she changed it, so stored km never drift
+  const original = workout ? { ...workout } : null;
   let newPhoto = null; // compressed data URL picked in this session
   let removePhoto = false;
   let finished = false;
@@ -98,6 +167,8 @@ export function openLogSheet({ mode = 'new', workout = null, date = null } = {})
 
   const body = `
     <form class="log-form" novalidate>
+      <div class="wins-row" aria-live="polite" hidden></div>
+
       <section class="field">
         <div class="field-label">Workout type</div>
         <div class="type-grid" role="radiogroup" aria-label="Workout type">${typeGrid}${archivedChip}</div>
@@ -188,7 +259,7 @@ export function openLogSheet({ mode = 'new', workout = null, date = null } = {})
       <span class="lb-check">${icon('check')}</span>
       <div>
         <div class="lb-title">Workout #${count} logged!</div>
-        <div class="lb-sub">${esc(weekMessage())}</div>
+        <div class="lb-sub">${esc(weekMessage(store.derived()))}</div>
       </div>
     </div>` : '';
 
@@ -212,6 +283,7 @@ export function openLogSheet({ mode = 'new', workout = null, date = null } = {})
   const photoInput = form.elements.photo;
   const preview = form.querySelector('.photo-preview');
   const addPhotoBtn = form.querySelector('.photo-add');
+  const winsRow = form.querySelector('.wins-row');
 
   // ---- Reflect the draft in the UI ----
 
@@ -231,6 +303,39 @@ export function openLogSheet({ mode = 'new', workout = null, date = null } = {})
     form.querySelector('[data-distance-field]').hidden = !store.typeById(draft.type).distance;
     if (document.activeElement !== durInput) durInput.value = draft.duration ?? '';
     if (document.activeElement !== dateInput) dateInput.value = draft.date;
+    scheduleWins();
+  }
+
+  // ---- Live "this save will…" chips (PR, goal done, freeze earned, ring closed) ----
+
+  let winsTimer = 0;
+  function scheduleWins() {
+    clearTimeout(winsTimer);
+    winsTimer = setTimeout(renderWins, 150);
+  }
+
+  function renderWins() {
+    if (finished) return;
+    const base = before ?? store.derived();
+    const st = store.state;
+    const w = {
+      ...draft,
+      distanceKm: currentDistanceKm(),
+      id: draft.id || '__draft__',
+      time: draft.time || timeNow(),
+      createdAt: draft.createdAt || new Date().toISOString(),
+    };
+    const workouts = mode === 'new' ? [...st.workouts, w] : st.workouts.map((x) => (x.id === w.id ? { ...x, ...w } : x));
+    const chips = milestones(base, derive({ ...st, workouts }, base.today)).map(chipText).filter(Boolean).slice(0, 2);
+    winsRow.hidden = !chips.length;
+    winsRow.innerHTML = chips.map(([ic, text, color]) => `<span class="win-chip c-${color}">${ic}<span>${esc(text)}</span></span>`).join('');
+  }
+
+  function currentDistanceKm() {
+    if (!store.typeById(draft.type).distance) return null;
+    if (!distanceTouched) return draft.distanceKm ?? null;
+    const dist = parseFloat(distInput.value);
+    return dist > 0 ? unitToKm(dist, units) : null;
   }
 
   async function showPhoto(url) {
@@ -313,6 +418,11 @@ export function openLogSheet({ mode = 'new', workout = null, date = null } = {})
     sync();
   });
 
+  distInput.addEventListener('input', () => {
+    distanceTouched = true;
+    scheduleWins();
+  });
+
   dateInput.addEventListener('change', () => {
     const v = dateInput.value;
     if (/^\d{4}-\d{2}-\d{2}$/.test(v)) draft.date = v > todayKey() ? todayKey() : v;
@@ -340,15 +450,17 @@ export function openLogSheet({ mode = 'new', workout = null, date = null } = {})
   // ---- Save / delete ----
 
   function readFields() {
-    const dist = parseFloat(distInput.value);
-    draft.distanceKm = store.typeById(draft.type).distance && dist > 0 ? unitToKm(dist, units) : null;
+    draft.distanceKm = currentDistanceKm();
     draft.note = noteInput.value.trim();
   }
 
   async function save({ quiet = false } = {}) {
     if (finished) return;
     finished = true;
+    clearTimeout(winsTimer);
     readFields();
+    // Snapshot before the change (a hold-to-log passes the one from before its add).
+    const b = before ?? store.derived();
 
     let oldPhoto = null;
     try {
@@ -366,16 +478,33 @@ export function openLogSheet({ mode = 'new', workout = null, date = null } = {})
     }
 
     const { id, createdAt, updatedAt, ...fields } = draft;
-    if (mode === 'new') {
-      store.addWorkout(fields);
-      celebrateLog({ x: innerWidth / 2, y: innerHeight * 0.8 });
-      toast(weekMessage());
-    } else {
-      store.updateWorkout(id, fields);
-      if (!quiet && mode === 'edit') toast('Saved');
-    }
+    if (mode === 'new') store.addWorkout(fields);
+    else store.updateWorkout(id, fields);
     if (oldPhoto) photos.delete(oldPhoto).catch(() => {});
     sheet.close('saved');
+
+    // What did this save earn? Compare with the same "today" so midnight can't fake an event.
+    const a = store.derivedAt(b.today);
+    const events = milestones(b, a);
+    if (mode === 'new') {
+      celebrateLog({ x: innerWidth / 2, y: innerHeight * 0.8 });
+      announce(events, weekMessage(a));
+    } else if (mode === 'fresh') {
+      announce(events); // the hold already celebrated; only speak up if something big happened
+    } else if (!events.length && a.weekly.current < b.weekly.current) {
+      // An edit moved a workout out of a met week: say so, and offer to put it back.
+      toast(`Saved · weekly streak is now ${plural(a.weekly.current, 'week')}`, {
+        duration: 5000,
+        action: {
+          label: 'Undo',
+          fn: () => store.updateWorkout(id, {
+            date: original.date, type: original.type, duration: original.duration, distanceKm: original.distanceKm,
+          }),
+        },
+      });
+    } else {
+      announce(events, quiet ? null : 'Saved');
+    }
   }
 
   async function confirmDelete() {

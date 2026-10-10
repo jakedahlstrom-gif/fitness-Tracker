@@ -41,7 +41,7 @@ function show(name, params = {}) {
 
   const el = $(`#view-${name}`);
   VIEWS[name](el, params);
-  if (changed && !params.day) window.scrollTo({ top: 0 });
+  if (changed && !params.day && !params.goal && !params.section) window.scrollTo({ top: 0 });
   try {
     if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
   } catch { /* some embedded frames don't allow URL changes */ }
@@ -84,11 +84,12 @@ initHoldButton(holdBtn, {
   duration: 1500,
   hint: $('#hold-hint'),
   onComplete(origin) {
+    const before = store.derived(); // so the details sheet can tell what this log earned
     const workout = store.addWorkout(defaultWorkout());
     celebrateLog(origin);
     if (current !== 'home') show('home');
     // Let the confetti pop before the sheet slides up.
-    setTimeout(() => openLogSheet({ mode: 'fresh', workout }), 550);
+    setTimeout(() => openLogSheet({ mode: 'fresh', workout, before }), 550);
   },
 });
 

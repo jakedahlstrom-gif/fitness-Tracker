@@ -27,10 +27,11 @@ export async function startExport() {
 /** Ask before replacing everything with a backup. Resolves true if restored. */
 export async function confirmAndRestore(backup) {
   const n = backup.data.workouts.length;
+  const goals = (Array.isArray(backup.data.goals) ? backup.data.goals : []).filter((g) => g && !g.archivedAt).length;
   const when = backup.exportedAt ? new Date(backup.exportedAt).toLocaleDateString() : 'an unknown date';
   const ok = await confirmDialog({
     title: 'Restore this backup?',
-    message: `It has ${plural(n, 'workout')} from ${when}. This replaces the ${plural(store.state.workouts.length, 'workout')} on this device.`,
+    message: `It has ${plural(n, 'workout')}${goals ? ` and ${plural(goals, 'goal')}` : ''} from ${when}. This replaces everything on this device.`,
     confirmText: 'Restore',
   });
   if (!ok) return false;

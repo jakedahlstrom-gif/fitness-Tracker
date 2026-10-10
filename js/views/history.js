@@ -42,12 +42,13 @@ export function renderHistory(el, params = {}) {
     else groups.push({ date: w.date, items: [w] });
   }
 
+  const prId = store.derived().records.longestWorkout.holder;
   const listHTML = groups.map((g) => {
     const mins = g.items.reduce((a, w) => a + (w.duration || 0), 0);
     return `
       <section class="day-group" id="day-${g.date}">
         <h3 class="day-head"><span>${esc(fmtDayLabel(g.date))}</span><span class="muted">${mins ? fmtMinutes(mins) : ''}</span></h3>
-        <ul class="wk-list">${g.items.map((w) => rowHTML(w, s.units)).join('')}</ul>
+        <ul class="wk-list">${g.items.map((w) => rowHTML(w, s.units, w.id === prId)).join('')}</ul>
       </section>`;
   }).join('');
 
@@ -86,7 +87,7 @@ export function renderHistory(el, params = {}) {
   }
 }
 
-function rowHTML(w, units) {
+function rowHTML(w, units, isPR = false) {
   const t = store.typeById(w.type);
   const meta = [
     w.duration ? `${w.duration} min` : '',
@@ -94,6 +95,7 @@ function rowHTML(w, units) {
     w.time ? fmtTime(w.time) : '',
   ].filter(Boolean).join(' · ');
   const tags = [
+    isPR ? `<span class="pill pill-pr">${icon('trophy')} PR</span>` : '',
     w.intensity ? `<span class="pill i-${w.intensity}">${INTENSITY_LABEL[w.intensity]}</span>` : '',
     w.feel ? `<span class="pill">Felt ${FEEL_LABEL[w.feel].toLowerCase()} · ${w.feel}/5</span>` : '',
   ].filter(Boolean).join('');

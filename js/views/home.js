@@ -1,83 +1,88 @@
-// Home: greeting, weekly rings, weekly streak strip, and 2×2 stat tiles.
+// Home: greeting, weekly rings, weekly streak strip (with freezes and rest days),
+// and 2×2 stat tiles. All numbers come from store.derived() (see progress.js).
 
 import { store } from '../store.js';
 import { icon } from '../icons.js';
 import { esc, fmtNum, plural, fmtDistance } from '../util.js';
 import {
-  dateKey, todayKey, addDays, startOfWeek, weekdayShort, fmtLongDate, fmtWeekRange, fmtAgo,
-  fmtDayLabel, greeting,
+  dateKey, todayKey, addDays, addDaysKey, startOfWeek, weekdayShort, fmtLongDate, fmtWeekRange,
+  fmtAgo, fmtDayLabel, greeting,
 } from '../dates.js';
-import { weekStats, monthStats, dailyStreak, longestWorkout, groupByDate } from '../stats.js';
-import { ringsSVG, miniRingSVG, animateRings, typeBadge } from '../components.js';
+import { monthStats, groupByDate } from '../stats.js';
+import {
+  ringsSVG, miniRingSVG, animateRings, typeBadge, METRIC_COLOR, goalLabel, goalProgressText,
+} from '../components.js';
 import { navigate } from '../router.js';
 import { openLogSheet } from '../logSheet.js';
 import { startExport } from '../backupFlow.js';
+import { openSheet } from '../sheet.js';
 import { toast } from '../toast.js';
+import { haptic } from '../effects.js';
 
 let weekOffset = 0; // 0 = this week, -1 = last week, …
-let lastProgress = { workouts: 0, minutes: 0, days: 0, goal: 0 }; // for smooth ring animation
+let lastProgress = null; // previous ring ratios, so rings animate from where they were and "pop" when they close
 
 const INTENSITY_LABEL = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+const TIER_LABEL = { short: 'Weekly goal', medium: 'Monthly goal', long: 'Long-term goal' };
+const RECORD_LABEL = { longestWorkout: 'Longest workout', bestWeek: 'Best week', bestMonth: 'Best month' };
+
+const ratio = (v, t) => (t > 0 ? Math.min(1, v / t) : 0);
 
 export function renderHome(el) {
   const s = store.settings;
+  const d = store.derived();
   const workouts = store.workouts();
   const now = new Date();
   const today = todayKey();
-  const thisWeek = startOfWeek(now, s.weekStart);
-  const week = weekStats(workouts, thisWeek);
   const t = s.targets;
 
-  // ---- Rings ----
+  // ---- Rings (this week) ----
+  const sameWeek = lastProgress && lastProgress.weekKey === d.weekKey;
   const rings = [
-    { key: 'workouts', label: 'Workouts', color: 'pink', value: week.count, target: t.workouts, unit: '' },
-    { key: 'minutes', label: 'Minutes', color: 'purple', value: week.minutes, target: t.minutes, unit: 'min' },
-    { key: 'days', label: 'Active days', color: 'cyan', value: week.activeDays, target: t.days, unit: '' },
-  ];
-  const ringData = rings.map((r) => ({ ...r, from: lastProgress[r.key] }));
-  const toGo = ringsToGoMessage(rings);
+    { key: 'workouts', label: 'Workouts', color: 'pink', value: d.week.count, target: t.workouts, unit: '' },
+    { key: 'minutes', label: 'Minutes', color: 'purple', value: d.week.minutes, target: t.minutes, unit: 'min' },
+    { key: 'days', label: 'Active days', color: 'cyan', value: d.week.activeDays, target: t.days, unit: '' },
+  ].map((r) => ({
+    ...r,
+    from: sameWeek ? lastProgress[r.key] : 0,
+    // A ring that just closed (since the last render this week) gets a one-time pop.
+    pop: !!sameWeek && lastProgress[r.key] < 1 && ratio(r.value, r.target) >= 1,
+  }));
 
   // ---- Weekly strip ----
+  const thisWeek = startOfWeek(now, s.weekStart);
   const viewStart = addDays(thisWeek, weekOffset * 7);
   const byDay = groupByDate(workouts);
+  const restMarks = new Set(store.state.restDays);
   const strip = Array.from({ length: 7 }, (_, i) => {
-    const d = addDays(viewStart, i);
-    const key = dateKey(d);
-    const done = byDay.has(key);
-    const state = key === today ? 'today' : key > today ? 'future' : done ? 'done' : 'missed';
-    const label = `${fmtDayLabel(key)}: ${done ? plural(byDay.get(key).length, 'workout') : 'no workout'}`;
+    const day = addDays(viewStart, i);
+    const key = dateKey(day);
+    const done = byDay.has(key) && key <= today;
+    const rest = !done && key <= today && restMarks.has(key);
+    let state = key === today ? 'today' : key > today ? 'future' : done ? 'done' : 'missed';
+    if (rest) state += ' rest';
+    const what = done ? plural(byDay.get(key).length, 'workout') : rest ? 'rest day' : 'no workout';
     return `
-      <button type="button" class="day ${state}${done ? ' has' : ''}" data-action="day" data-date="${key}" aria-label="${esc(label)}" ${state === 'future' ? 'disabled' : ''}>
-        <span class="day-name">${esc(weekdayShort(d))}</span>
-        <span class="day-dot">${done && state !== 'today' ? icon('check') : ''}</span>
+      <button type="button" class="day ${state}${done ? ' has' : ''}" data-action="day" data-date="${key}"
+        aria-label="${esc(`${fmtDayLabel(key)}: ${what}`)}" ${key > today ? 'disabled' : ''}>
+        <span class="day-name">${esc(weekdayShort(day))}</span>
+        <span class="day-dot">${rest ? icon('moon') : done && key !== today ? icon('check') : ''}</span>
       </button>`;
   }).join('');
 
-  const viewWeek = weekStats(workouts, viewStart);
-  let stripFoot;
-  if (weekOffset === 0) {
-    const streak = dailyStreak(workouts);
-    if (streak.count >= 2) {
-      stripFoot = `<span class="streak-text">${icon('flame')} ${streak.count}-day streak!</span>${
-        streak.includesToday ? '' : '<span class="muted"> Keep it alive today</span>'}`;
-    } else if (streak.count === 1) {
-      stripFoot = `<span class="streak-text">${icon('flame')} 1-day streak</span><span class="muted"> · go again tomorrow</span>`;
-    } else {
-      stripFoot = '<span class="muted">Log a workout to start a streak ✨</span>';
-    }
-  } else {
-    const met = viewWeek.count >= t.workouts;
-    stripFoot = viewWeek.count
-      ? `<span class="${met ? 'streak-text' : ''}">${plural(viewWeek.count, 'workout')} · ${fmtNum(viewWeek.minutes)} min${met ? ' · goal met ✓' : ''}</span>`
-      : '<span class="muted">No workouts this week</span>';
-  }
+  const streakHead = weekOffset === 0
+    ? `<span class="streak-pills">
+        <span class="pill pill-streak">${icon('flame')} ${d.weekly.current ? `${d.weekly.current} wk` : 'Start one'}</span>
+        ${d.weekly.freezes ? `<span class="pill pill-freeze" title="Streak freezes">${icon('snowflake')} ${d.weekly.freezes}</span>` : ''}
+      </span>`
+    : `<span class="label label-quiet">${esc(fmtWeekRange(viewStart))}</span>`;
+
+  const stripFoot = weekOffset === 0 ? currentWeekFoot(d, workouts.length, thisWeek) : pastWeekFoot(d, viewStart);
 
   // ---- Tiles ----
-  const last = workouts[0];
+  const last = workouts.find((w) => w.date <= today) || workouts[0];
   const month = monthStats(workouts, now);
-  const best = longestWorkout(workouts);
   const monthBars = weeklyBarsForMonth(workouts, now);
-  const goalPct = t.workouts ? Math.min(100, Math.round((week.count / t.workouts) * 100)) : 0;
 
   const lastTile = last ? `
     <button type="button" class="card tile" data-action="edit-last">
@@ -104,30 +109,59 @@ export function renderHome(el) {
       <span class="mini-bars" aria-hidden="true">${monthBars}</span>
     </button>`;
 
-  const goalTile = `
+  const f = d.featured;
+  const goalTile = f ? `
+    <button type="button" class="card tile" data-action="goto-goal" data-id="${esc(f.id)}">
+      <span class="label">${TIER_LABEL[f.tier]}</span>
+      <span class="tile-row">
+        ${miniRingSVG({ value: f.value, target: f.target, color: METRIC_COLOR[f.metric], from: lastProgress?.goalId === f.id ? lastProgress.goal : 0 })}
+        ${f.met
+          ? `<span class="tile-big tile-done">${icon('check')}<small>Done!</small></span>`
+          : `<span class="tile-big">${Math.floor(f.pct * 100)}<small>%</small></span>`}
+      </span>
+      <span class="muted tile-clip">${esc(goalLabel(f.goal))}</span>
+      <span class="muted tile-clip small">${esc(goalProgressText(f))}</span>
+    </button>` : `
     <button type="button" class="card tile" data-action="goto-goals">
       <span class="label">Weekly goal</span>
       <span class="tile-row">
-        ${miniRingSVG({ value: week.count, target: t.workouts, color: 'cyan', from: lastProgress.goal })}
-        <span class="tile-big">${goalPct}<small>%</small></span>
+        ${miniRingSVG({ value: d.week.count, target: t.workouts, color: 'cyan', from: lastProgress?.goalId === 'week' ? lastProgress.goal : 0 })}
+        <span class="tile-big">${Math.round(ratio(d.week.count, t.workouts) * 100)}<small>%</small></span>
       </span>
-      <span class="muted">${week.count} of ${plural(t.workouts, 'workout')}</span>
+      <span class="muted">${d.week.count} of ${plural(t.workouts, 'workout')}</span>
     </button>`;
 
-  const bestTile = best ? `
-    <button type="button" class="card tile" data-action="edit-best">
+  const fresh = d.freshRecord ? d.records[d.freshRecord] : null;
+  const best = store.getWorkout(d.records.longestWorkout.holder); // same record History marks with "PR"
+  let bestTile;
+  if (fresh) {
+    bestTile = `
+    <button type="button" class="card tile" data-action="goto-records">
+      <span class="label c-pink-text">New PR!</span>
+      <span class="tile-row">
+        <span class="type-badge lg c-yellow">${icon('trophy')}</span>
+        <span class="tile-big">${fmtNum(fresh.value)}<small>min</small></span>
+      </span>
+      <span class="muted">${RECORD_LABEL[d.freshRecord]}</span>
+    </button>`;
+  } else if (best) {
+    bestTile = `
+    <button type="button" class="card tile" data-action="goto-records">
       <span class="label">Personal best</span>
       <span class="tile-row">
         <span class="type-badge lg c-purple">${icon('trophy')}</span>
         <span class="tile-big">${best.duration}<small>min</small></span>
       </span>
       <span class="muted">Longest · ${esc(store.typeById(best.type).label)}</span>
-    </button>` : `
+    </button>`;
+  } else {
+    bestTile = `
     <div class="card tile tile-empty">
       <span class="label">Personal best</span>
       <span class="tile-row"><span class="type-badge lg c-purple">${icon('trophy')}</span></span>
       <span class="tile-empty-text">Your records will show up here.</span>
     </div>`;
+  }
 
   el.innerHTML = `
     <header class="top">
@@ -139,21 +173,21 @@ export function renderHome(el) {
     ${backupNudgeHTML(workouts.length)}
 
     <article class="card rings-card" aria-label="This week">
-      <div class="rings-wrap">${ringsSVG(ringData)}</div>
+      <div class="rings-wrap">${ringsSVG(rings)}</div>
       <div class="ring-stats">
         ${rings.map((r) => `
-          <div class="ring-stat">
+          <div class="ring-stat${r.value >= r.target ? ' closed' : ''}">
             <span class="rs-label c-${r.color}">${r.label}</span>
-            <span class="rs-val"><b>${fmtNum(r.value)}</b>/${fmtNum(r.target)}${r.unit ? ` <small>${r.unit}</small>` : ''}</span>
+            <span class="rs-val">${r.value >= r.target ? `<span class="rs-check c-${r.color}">${icon('check')}</span>` : ''}<b>${fmtNum(r.value)}</b>/${fmtNum(r.target)}${r.unit ? ` <small>${r.unit}</small>` : ''}</span>
           </div>`).join('')}
-        <div class="ring-togo">${toGo}</div>
+        <div class="ring-togo">${ringsToGoMessage(rings)}</div>
       </div>
     </article>
 
     <article class="card streak-card">
       <div class="card-head">
         <span class="label">Weekly streak</span>
-        <span class="label label-quiet">${weekOffset === 0 ? 'This week' : esc(fmtWeekRange(viewStart))}</span>
+        ${streakHead}
       </div>
       <div class="strip">
         <button type="button" class="icon-btn strip-nav" data-action="week-prev" aria-label="Previous week">${icon('chevronLeft')}</button>
@@ -168,16 +202,72 @@ export function renderHome(el) {
 
   animateRings(el);
   lastProgress = {
-    workouts: ratio(week.count, t.workouts),
-    minutes: ratio(week.minutes, t.minutes),
-    days: ratio(week.activeDays, t.days),
-    goal: ratio(week.count, t.workouts),
+    weekKey: d.weekKey,
+    workouts: ratio(d.week.count, t.workouts),
+    minutes: ratio(d.week.minutes, t.minutes),
+    days: ratio(d.week.activeDays, t.days),
+    goalId: f ? f.id : 'week',
+    goal: f ? f.pct : ratio(d.week.count, t.workouts),
   };
 
   if (!el.dataset.bound) bindHome(el);
 }
 
-const ratio = (v, t) => (t > 0 ? Math.min(1, v / t) : 0);
+/** Up to three short lines under this week's strip: weekly streak, daily streak, news. */
+function currentWeekFoot(d, totalWorkouts, weekStart) {
+  const w = d.weekly;
+  const tw = w.thisWeek;
+  const lastDay = weekdayShort(addDays(weekStart, 6));
+  const lines = [];
+
+  // 1. Weekly streak
+  if (!totalWorkouts) {
+    lines.push(`<span class="foot-main">${icon('sparkle')} Log a workout to start a streak</span>`);
+  } else if (tw.met) {
+    lines.push(`<span class="foot-main">${icon('flame')} ${plural(w.current, 'week')} in a row · this week is locked in${tw.earnedHere ? ' · freeze earned' : ''}</span>`);
+  } else if (w.current > 0) {
+    lines.push(`<span class="foot-main">${icon('flame')} ${tw.toGo} more ${tw.toGo === 1 ? 'workout' : 'workouts'} by ${esc(lastDay)} makes it ${w.current + 1} weeks${w.toNextFreeze === 1 ? ' · earns a freeze' : ''}</span>`);
+  } else {
+    lines.push(`<span class="foot-main">${icon('flame')} ${tw.toGo} more ${tw.toGo === 1 ? 'workout' : 'workouts'} this week starts a weekly streak</span>`);
+  }
+
+  // 2. Daily streak (with the "Rest day?" repair offer)
+  const dl = d.daily;
+  const neither = !dl.includesToday && !dl.restToday;
+  if (dl.repairable) {
+    lines.push(`<span class="foot-repair">Your ${dl.repairCount}-day streak paused yesterday. Rest day?
+      <button type="button" class="btn btn-small btn-secondary" data-action="rest-yesterday">${icon('moon')} Mark rest</button></span>`);
+  } else if (dl.count >= 2) {
+    lines.push(`<span>${plural(dl.count, 'day')} in a row${dl.restUsed ? ` · ${dl.restUsed} rest` : ''}${neither ? '<span class="muted"> · log or rest today</span>' : ''}</span>`);
+  } else if (dl.count === 1) {
+    lines.push(`<span>1-day streak<span class="muted">${neither ? ' · log or rest today' : ' · go again tomorrow'}</span></span>`);
+  } else if (totalWorkouts) {
+    lines.push('<span class="muted">Start a daily streak today</span>');
+  }
+
+  // 3. What happened last week
+  const lw = w.lastWeek;
+  if (lw?.state === 'frozen') {
+    lines.push(`<span class="muted">${icon('snowflake')} A freeze saved your streak last week</span>`);
+  } else if (lw?.state === 'missed' && lw.endedRun >= 2) {
+    lines.push(`<span class="muted">New week, fresh start. Your ${lw.endedRun}-week streak is in the books.</span>`);
+  }
+  return lines.map((l) => `<div class="foot-line">${l}</div>`).join('');
+}
+
+function pastWeekFoot(d, viewStart) {
+  const wk = d.weekly.byKey.get(dateKey(viewStart));
+  const mins = store.workouts().reduce((sum, w) => {
+    const k = w.date;
+    return k >= dateKey(viewStart) && k < dateKey(addDays(viewStart, 7)) ? sum + (w.duration || 0) : sum;
+  }, 0);
+  let text;
+  if (!wk || !wk.count) text = '<span class="muted">No workouts this week</span>';
+  else if (wk.state === 'met') text = `<span class="foot-main">${plural(wk.count, 'workout')} · ${fmtNum(mins)} min · goal met ✓</span>`;
+  else if (wk.state === 'frozen') text = `<span>${wk.count} of ${wk.target} · saved by a freeze ${icon('snowflake')}</span>`;
+  else text = `<span>${wk.count} of ${wk.target} · ${fmtNum(mins)} min</span>`;
+  return `<div class="foot-line">${text}</div>`;
+}
 
 /** "1 workout · 55 min to go" or "All rings closed! 🎉" */
 function ringsToGoMessage(rings) {
@@ -226,9 +316,50 @@ function backupNudgeHTML(count) {
     </div>`;
 }
 
+// ---------------------------------------------------------------------------
+// Day sheet: a day with no workout can be marked as a rest day, or backfilled.
+// ---------------------------------------------------------------------------
+
+const REST_REASON = {
+  cap: (c) => `You've used your ${c.cap} rest ${c.cap === 1 ? 'day' : 'days'} this week`,
+  'too-old': () => 'Rest days can be marked up to 7 days back',
+};
+
+function openDaySheet(key) {
+  const marked = store.state.restDays.includes(key);
+  const check = store.restCheck(key);
+  const reason = !check.ok && REST_REASON[check.reason] ? REST_REASON[check.reason](check) : '';
+  const body = marked
+    ? '<p>Marked as a rest day. Your daily streak is safe.</p>'
+    : `<p>Nothing logged. Resting? A rest day keeps your daily streak going.</p>
+       <p class="muted small">Rest days this week: ${check.used} of ${check.cap}</p>`;
+  const sheet = openSheet({
+    title: fmtDayLabel(key),
+    body: `<div class="day-sheet">${body}${reason ? `<p class="muted small">${esc(reason)}</p>` : ''}</div>`,
+    footer: `
+      <button type="button" class="btn btn-ghost" data-action="toggle-rest" ${check.ok ? '' : 'disabled'}>${icon('moon')} ${marked ? 'Not a rest day' : 'Rest day'}</button>
+      <button type="button" class="btn btn-primary" data-action="log-day">${icon('plus')} Log workout</button>`,
+    className: 'day-sheet-layer',
+  });
+  sheet.el.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'toggle-rest') {
+      if (store.setRestDay(key, !marked)) {
+        haptic('tick');
+        toast(marked ? 'Rest day removed' : 'Rest day saved. Streak safe 🌙');
+      }
+      sheet.close('rest');
+    } else if (btn.dataset.action === 'log-day') {
+      sheet.close('log');
+      openLogSheet({ mode: 'new', date: key });
+    }
+  });
+}
+
 function bindHome(el) {
   el.dataset.bound = '1';
-  el.addEventListener('click', async (e) => {
+  el.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     switch (btn.dataset.action) {
@@ -242,22 +373,20 @@ function bindHome(el) {
         break;
       case 'day': {
         const key = btn.dataset.date;
-        if (store.workouts().some((w) => w.date === key)) {
-          navigate('history', { day: key });
-        } else {
-          toast(`No workout on ${fmtDayLabel(key)}`, {
-            action: { label: 'Add one', fn: () => openLogSheet({ mode: 'new', date: key }) },
-          });
+        if (store.state.workouts.some((w) => w.date === key)) navigate('history', { day: key });
+        else if (key <= todayKey()) openDaySheet(key);
+        break;
+      }
+      case 'rest-yesterday': {
+        const y = addDaysKey(todayKey(), -1);
+        if (store.setRestDay(y, true)) {
+          haptic('tick');
+          toast(`Streak saved: ${fmtDayLabel(y).toLowerCase()} is a rest day 🌙`);
         }
         break;
       }
       case 'edit-last': {
-        const w = store.workouts()[0];
-        if (w) openLogSheet({ mode: 'edit', workout: w });
-        break;
-      }
-      case 'edit-best': {
-        const w = longestWorkout(store.workouts());
+        const w = store.workouts().find((x) => x.date <= todayKey()) || store.workouts()[0];
         if (w) openLogSheet({ mode: 'edit', workout: w });
         break;
       }
@@ -266,6 +395,12 @@ function bindHome(el) {
         break;
       case 'goto-goals':
         navigate('goals');
+        break;
+      case 'goto-goal':
+        navigate('goals', { goal: btn.dataset.id });
+        break;
+      case 'goto-records':
+        navigate('goals', { section: 'records' });
         break;
       case 'backup-now':
         startExport();

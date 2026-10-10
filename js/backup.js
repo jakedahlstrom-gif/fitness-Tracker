@@ -63,6 +63,9 @@ export function parseBackup(text) {
   if (obj?.app !== APP_ID || !obj.data || !Array.isArray(obj.data.workouts)) {
     throw new Error("That doesn't look like a Glow backup.");
   }
+  if (Number(obj.schema) > SCHEMA_VERSION) {
+    throw new Error('This backup is from a newer version of Glow. Update the app first (close and reopen it), then try again.');
+  }
   return obj;
 }
 

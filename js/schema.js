@@ -5,7 +5,7 @@
 import { uid, clamp } from './util.js';
 import { dateKey, parseKey, todayKey } from './dates.js';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 /** Accent color names available to workout types (mapped to CSS vars --c-*). */
 export const TYPE_COLORS = ['pink', 'cyan', 'purple', 'lime', 'orange', 'yellow', 'blue'];
@@ -168,6 +168,64 @@ function defaultSettings() {
     targetHistory: [{ from: '2000-01-01', ...DEFAULT_TARGETS }],
     featuredGoalId: null, // goal pinned to the Home tile
     types: DEFAULT_TYPES.map((t) => ({ ...t })),
+    palette: 'glow', // unlockable look (resolved against what's unlocked when applied)
+    skin: 'classic',
+    celebrations: 'full', // 'full' | 'calm'
+  };
+}
+
+/** The rewards ledger: sticky wins and badges with the date they happened. */
+export function defaultAwards() {
+  return { wins: {}, badges: {}, unlocksSeen: [], backfilledAt: null, introPending: false };
+}
+
+const LOOK_ID = /^[a-z0-9-]{1,32}$/;
+const WIN_KEY = /^[a-z][a-zA-Z]*:\S{1,200}$/;
+const BADGE_ID = /^[a-z0-9-]{1,40}$/i;
+const VIAS = ['live', 'quiet', 'backfill'];
+const KNOWN_KINDS = { goal: 'goal', week: 'week', pr: 'pr', freeze: 'freeze' };
+
+/** Keep only plain snapshot fields: short strings and finite numbers. */
+function snapshot(entry) {
+  const out = {};
+  for (const [k, v] of Object.entries(entry)) {
+    if (['on', 'at', 'via', 'seen'].includes(k)) continue;
+    if (typeof v === 'string') out[k] = v.trim().slice(0, 80);
+    else if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
+  }
+  return out;
+}
+
+export function normalizeAwards(raw, version = SCHEMA_VERSION) {
+  const base = defaultAwards();
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return base;
+  const stamp = (e) => ({
+    on: e.on,
+    at: isIso(e.at) ? e.at : `${e.on}T12:00:00.000Z`,
+    via: VIAS.includes(e.via) ? e.via : 'quiet',
+  });
+  const wins = {};
+  if (raw.wins && typeof raw.wins === 'object' && !Array.isArray(raw.wins)) {
+    for (const [k, e] of Object.entries(raw.wins)) {
+      if (!WIN_KEY.test(k) || !e || typeof e !== 'object' || !isRealDateKey(e.on)) continue;
+      const prefix = k.slice(0, k.indexOf(':'));
+      wins[k] = { ...snapshot(e), ...(KNOWN_KINDS[prefix] ? { kind: KNOWN_KINDS[prefix] } : {}), ...stamp(e) };
+    }
+  }
+  const badges = {};
+  if (raw.badges && typeof raw.badges === 'object' && !Array.isArray(raw.badges)) {
+    for (const [id, e] of Object.entries(raw.badges)) {
+      if (!BADGE_ID.test(id) || !e || typeof e !== 'object' || !isRealDateKey(e.on)) continue;
+      badges[id] = { ...stamp(e), seen: typeof e.seen === 'boolean' ? e.seen : true };
+    }
+  }
+  return {
+    wins,
+    badges,
+    unlocksSeen: [...new Set((Array.isArray(raw.unlocksSeen) ? raw.unlocksSeen : []).filter((x) => typeof x === 'string'))],
+    // Data from before Stage 3 (or a downgrade round trip) gets one additive backfill pass.
+    backfilledAt: version >= 3 && isIso(raw.backfilledAt) ? raw.backfilledAt : null,
+    introPending: raw.introPending === true,
   };
 }
 
@@ -179,6 +237,7 @@ export function defaultState() {
     workouts: [],
     goals: [seedGoal(settings.targets)],
     restDays: [],
+    awards: defaultAwards(),
     meta: { createdAt: new Date().toISOString(), lastBackupAt: null, backupNudgeSnoozedUntil: null },
   };
 }
@@ -206,6 +265,9 @@ export function normalize(raw, today = todayKey()) {
     }))
     : base.settings.types;
   s.targetHistory = normalizeTargetHistory(raw.settings?.targetHistory, s.targets, today);
+  s.palette = LOOK_ID.test(s.palette) ? s.palette : 'glow';
+  s.skin = LOOK_ID.test(s.skin) ? s.skin : 'classic';
+  s.celebrations = s.celebrations === 'calm' ? 'calm' : 'full';
 
   let goals;
   if (Array.isArray(raw.goals)) {
@@ -226,6 +288,7 @@ export function normalize(raw, today = todayKey()) {
     workouts: Array.isArray(raw.workouts) ? raw.workouts.filter((w) => w && typeof w === 'object').map(normalizeWorkout) : [],
     goals,
     restDays,
+    awards: normalizeAwards(raw.awards, version),
     meta: { ...base.meta, ...(raw.meta || {}) },
   };
 }

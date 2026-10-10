@@ -12,6 +12,8 @@ import {
   defaultState, normalize, normalizeGoal, normalizeWorkout, clampTargets,
 } from './schema.js';
 import { derive, buildCtx, goalProgress, restCheck } from './progress.js';
+import { facts, evaluate, winCounts, unlockedSet, unlockOn, nextUp } from './rewards.js';
+import { BADGES } from './badges.js';
 
 export { SCHEMA_VERSION, TYPE_COLORS, DEFAULT_TYPES, INTENSITIES };
 
@@ -24,6 +26,8 @@ const listeners = new Set();
 let errorHandler = (err) => console.error(err);
 let rev = 0; // bumped on every change; derived() is cached per (rev, today)
 let memo = null;
+let rewardsMemo = null;
+let lastPersistOk = true;
 
 function trySet(key, value) {
   try { localStorage.setItem(key, value); } catch { /* quota or storage blocked */ }
@@ -58,11 +62,12 @@ function persist() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     localStorage.setItem(THEME_KEY, state.settings.theme);
-    return true;
+    lastPersistOk = true;
   } catch (err) {
+    lastPersistOk = false;
     errorHandler(err);
-    return false;
   }
+  return lastPersistOk;
 }
 
 if (needsSave) persist();
@@ -82,6 +87,9 @@ export const store = {
   get settings() { return state.settings; },
   get meta() { return state.meta; },
   get rev() { return rev; },
+  get awards() { return state.awards; },
+  /** False when the last save failed (storage blocked or full). */
+  get canPersist() { return lastPersistOk; },
 
   /** Called with any storage error (e.g. quota exceeded). */
   onError(fn) { errorHandler = fn; },
@@ -101,6 +109,65 @@ export const store = {
   /** derive() for a specific day (used to compare before/after a save with the same "today"). */
   derivedAt(today) {
     return today === todayKey() ? store.derived() : derive(state, today);
+  },
+
+  /**
+   * Badge progress, unlocked looks and hints for today; cached until the data or the day changes.
+   * { progress: Map(id → {value, target, on, hidden, earned, earnedOn, seen}), counts, unlocked,
+   *   unlockOn, unseen: {badges, unlocks}, nextUp, totals: {earned, visible} }
+   */
+  rewards() {
+    const today = todayKey();
+    if (rewardsMemo && rewardsMemo.rev === rev && rewardsMemo.today === today) return rewardsMemo.value;
+    const aw = state.awards;
+    const d = store.derived();
+    const F = facts(state, d, aw.wins, today);
+    const ev = evaluate(F);
+    const counts = winCounts(aw.wins);
+    const unlocked = unlockedSet(aw.wins, counts);
+    const progress = new Map();
+    for (const def of BADGES) {
+      const b = aw.badges[def.id];
+      const e = ev.get(def.id);
+      progress.set(def.id, { ...e, hidden: e.hidden && !b, earned: !!b, earnedOn: b ? b.on : null, seen: b ? b.seen !== false : true });
+    }
+    const visible = BADGES.filter((def) => !progress.get(def.id).hidden);
+    const value = {
+      facts: F,
+      progress,
+      counts,
+      unlocked,
+      unlockOn: unlockOn(aw.wins, counts),
+      unseen: {
+        badges: BADGES.filter((def) => aw.badges[def.id]?.seen === false).map((def) => def.id),
+        unlocks: [...unlocked].filter((u) => u !== 'palette:glow' && u !== 'skin:classic' && !aw.unlocksSeen.includes(u)),
+      },
+      nextUp: nextUp({ progress, counts }, { units: state.settings.units }),
+      totals: { earned: visible.filter((def) => progress.get(def.id).earned).length, visible: visible.length },
+    };
+    rewardsMemo = { rev, today, value };
+    return value;
+  },
+
+  /** Add new wins/badges to the ledger (never removes anything). One commit, or none. */
+  grant({ wins = {}, badges = {}, patch = null } = {}) {
+    const aw = state.awards;
+    let changed = false;
+    for (const [k, v] of Object.entries(wins)) if (!(k in aw.wins)) { aw.wins[k] = v; changed = true; }
+    for (const [k, v] of Object.entries(badges)) if (!(k in aw.badges)) { aw.badges[k] = v; changed = true; }
+    if (patch) for (const [k, v] of Object.entries(patch)) if (aw[k] !== v) { aw[k] = v; changed = true; }
+    if (changed) commit('awards');
+    return changed;
+  },
+
+  /** Mark badges / unlocks as seen (clears NEW pills and the Profile dot). */
+  markSeen({ badges = [], unlocks = [], intro = false } = {}) {
+    const aw = state.awards;
+    let changed = false;
+    for (const id of badges) if (aw.badges[id] && aw.badges[id].seen === false) { aw.badges[id].seen = true; changed = true; }
+    for (const u of unlocks) if (!aw.unlocksSeen.includes(u)) { aw.unlocksSeen.push(u); changed = true; }
+    if (intro && aw.introPending) { aw.introPending = false; changed = true; }
+    if (changed) commit('awards:seen');
   },
 
   /** Progress for any goal, including archived ones and unsaved drafts. */

@@ -35,6 +35,16 @@ export function nextMonthStart(monthKey) {
   return dateKey(new Date(y, m, 1));
 }
 
+/** The Monday of the calendar week containing week key `wk` (Sunday- or Monday-start). */
+export const canonWeek = (wk) => weekKeyOf(addDaysKey(wk, 3), 1);
+
+/** A day in the period before the goal's current one (null for long goals). */
+export function prevPeriodDay(g, today, ws) {
+  if (g.tier === 'short') return addDaysKey(weekKeyOf(today, ws), -1);
+  if (g.tier === 'medium') return addDaysKey(`${monthKeyOf(today)}-01`, -1);
+  return null;
+}
+
 /** Total order for workouts: date, time, then creation and id as tie-breakers. */
 export const chrono = (a, b) =>
   (a.date + a.time).localeCompare(b.date + b.time)
@@ -86,20 +96,22 @@ export function buildCtx(state, today) {
 export function weeklyStreak(ctx) {
   const { today, settings, workouts, weekOf } = ctx;
   const cur = weekOf(today);
-  const counts = new Map();
+  const dates = new Map(); // week → workout dates in order (so we know when the target was hit)
   for (const w of workouts) {
     const k = weekOf(w.date);
-    counts.set(k, (counts.get(k) || 0) + 1);
+    if (!dates.has(k)) dates.set(k, []);
+    dates.get(k).push(w.date);
   }
 
   let run = 0, runStart = null, bank = 0, earned = 0, used = 0;
   let best = 0, bestStart = null, bestEnd = null, prevBest = 0, lastEarnedWeek = null;
+  const bestReached = []; // bestReached[n-1] = the week her longest-ever run first reached n
   const weeks = [];
   const first = workouts.length ? weekOf(workouts[0].date) : cur;
 
   for (let wk = first; wk <= cur; wk = addDaysKey(wk, 7)) {
     const target = targetsFor(settings, wk, cur).workouts;
-    const count = counts.get(wk) || 0;
+    const count = dates.get(wk)?.length || 0;
     let state;
     let earnedHere = false;
     let endedRun = 0;
@@ -120,13 +132,15 @@ export function weeklyStreak(ctx) {
     if (run > best) {
       if (runStart !== bestStart) prevBest = best;
       best = run; bestStart = runStart; bestEnd = wk;
+      bestReached.push(wk);
     }
-    weeks.push({ key: wk, count, target, state, run, bank, earnedHere, endedRun });
+    const metOn = state === 'met' ? dates.get(wk)[target - 1] : null; // the day the target-th workout landed
+    weeks.push({ key: wk, count, target, state, run, bank, earnedHere, endedRun, metOn });
   }
 
   const tw = weeks[weeks.length - 1];
   return {
-    current: run, runStart, freezes: bank, earned, used, best, bestStart, bestEnd, prevBest, lastEarnedWeek,
+    current: run, runStart, freezes: bank, earned, used, best, bestStart, bestEnd, prevBest, lastEarnedWeek, bestReached,
     toNextFreeze: bank >= MAX_FREEZES ? null : FREEZE_EVERY - (run % FREEZE_EVERY),
     weeks,
     byKey: new Map(weeks.map((x) => [x.key, x])),
@@ -179,6 +193,7 @@ export function dailyStreak(ctx) {
   const cur = chainAt(ctx, on(today) ? today : yesterday); // an empty today is still pending
 
   let best = 0, bestStart = null, bestEnd = null, prevBest = 0, run = 0, runStart = null, prev = null;
+  const bestReached = []; // bestReached[n-1] = the day her longest-ever run first reached n days
   for (const d of [...new Set([...activeDays, ...rest])].sort()) {
     if (!(prev && addDaysKey(prev, 1) === d)) { run = 0; runStart = null; }
     if (activeDays.has(d)) {
@@ -187,6 +202,7 @@ export function dailyStreak(ctx) {
       if (run > best) {
         if (runStart !== bestStart) prevBest = best;
         best = run; bestStart = runStart; bestEnd = d;
+        bestReached.push(d);
       }
     }
     prev = d;
@@ -198,7 +214,7 @@ export function dailyStreak(ctx) {
   return {
     count: cur.count, restUsed: cur.restUsed, start: cur.start,
     includesToday: activeDays.has(today), restToday: rest.has(today),
-    best, bestStart, bestEnd, prevBest, repairable, repairCount: repairable ? before.count : 0,
+    best, bestStart, bestEnd, prevBest, bestReached, repairable, repairCount: repairable ? before.count : 0,
   };
 }
 
@@ -272,6 +288,7 @@ export function goalProgress(g, { today, ws, workouts }) {
 
   let acc = 0;
   let achievedOn = null;
+  let achievedBy = null; // id of the workout that crossed the target
   const days = new Set();
   for (const w of workouts) { // chronological, date <= today
     if (w.date < from || (to && w.date >= to) || (g.typeId && w.type !== g.typeId)) continue;
@@ -283,7 +300,7 @@ export function goalProgress(g, { today, ws, workouts }) {
       case 'longestDistance': acc = Math.max(acc, w.distanceKm || 0); break;
       default: break;
     }
-    if (!achievedOn && acc >= need) achievedOn = w.date;
+    if (!achievedOn && acc >= need) { achievedOn = w.date; achievedBy = w.id; }
   }
 
   const met = achievedOn !== null;
@@ -306,7 +323,7 @@ export function goalProgress(g, { today, ws, workouts }) {
   }
   return {
     goal: g, id: g.id, tier: g.tier, metric: g.metric, periodKey, from, to, last,
-    value: acc, target, pct: Math.min(1, target > 0 ? acc / target : 0), met, achievedOn, status, daysLeft, pace,
+    value: acc, target, pct: Math.min(1, target > 0 ? acc / target : 0), met, achievedOn, achievedBy, status, daysLeft, pace,
   };
 }
 
@@ -342,12 +359,15 @@ export function derive(state, today) {
   const daily = dailyStreak(ctx);
   const records = computeRecords(ctx, weekly, daily);
   const goals = ctx.goals.filter((g) => !g.archivedAt).map((g) => goalProgress(g, ctx));
+  // Last week's / last month's result for repeating goals, so a backdated log can finish them ("catch-up").
+  const prevGoals = ctx.goals.filter((g) => !g.archivedAt && g.tier !== 'long')
+    .map((g) => goalProgress(g, { ...ctx, today: prevPeriodDay(g, today, ctx.ws) }));
   const featured = featuredGoal(goals, state.settings.featuredGoalId, today);
   let freshRecord = null;
   for (const k of ['longestWorkout', 'bestWeek', 'bestMonth']) {
     if (records[k].isNew && (!freshRecord || records[k].date > records[freshRecord].date)) freshRecord = k;
   }
-  return { today, weekKey: wk, week, weekly, daily, records, goals, featured, freshRecord };
+  return { today, weekKey: wk, week, weekly, daily, records, goals, prevGoals, featured, freshRecord };
 }
 
 // ---- Events ("new PR on save", goal met, freeze earned, …) ----
@@ -377,6 +397,14 @@ export function milestones(b, a) {
     }
   }
   // Only when a freeze is actually banked (a backfill can earn one that a later past miss spends at once).
+  // Catch-ups: a backdated log that finishes last week's or last month's goal.
+  const wasPrev = new Map((b.prevGoals || []).map((p) => [p.id, p]));
+  for (const p of a.prevGoals || []) {
+    const q = wasPrev.get(p.id);
+    if (p.met && q && !q.met && q.periodKey === p.periodKey) {
+      ev.push({ kind: 'goal', tier: p.tier, goalId: p.id, goal: p.goal, key: `goal:${p.id}:${p.periodKey}`, size: SIZE[p.tier], priority: PRIORITY[`goal:${p.tier}`], catchUp: true });
+    }
+  }
   if (a.weekly.earned > b.weekly.earned && a.weekly.freezes > b.weekly.freezes) {
     ev.push({ kind: 'freeze', freezes: a.weekly.freezes, key: `freeze:${a.weekly.lastEarnedWeek}`, size: 'medium', priority: PRIORITY.freeze });
   }

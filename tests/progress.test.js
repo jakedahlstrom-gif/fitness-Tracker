@@ -228,7 +228,7 @@ test('P1 derive stays fast for 5 years of data', () => {
 
 test('N1 v1 data migrates: seeded monthly goal, target history, empty rest days', () => {
   const s = normalize({ version: 1, settings: { targets: { workouts: 4, minutes: 200, days: 3 } }, workouts: [] }, TODAY);
-  assert.equal(s.version, 2);
+  assert.equal(s.version, 3);
   assert.equal(s.goals.length, 1);
   assert.deepEqual([s.goals[0].tier, s.goals[0].metric, s.goals[0].target], ['medium', 'minutes', 800]);
   assert.deepEqual(s.restDays, []);
@@ -239,8 +239,8 @@ test('N1 v1 data migrates: seeded monthly goal, target history, empty rest days'
 test('N2 v2 data keeps an empty goal list and unknown keys', () => {
   const s = normalize({ version: 2, goals: [], workouts: [] }, TODAY);
   assert.deepEqual(s.goals, []);
-  const t = normalize({ version: 2, goals: [], workouts: [], awards: { x: 1 } }, TODAY);
-  assert.deepEqual(t.awards, { x: 1 });
+  const t = normalize({ version: 2, goals: [], workouts: [], challenges: { x: 1 } }, TODAY);
+  assert.deepEqual(t.challenges, { x: 1 });
   assert.deepEqual(normalize(s, TODAY), s, 'normalize is idempotent');
 });
 
@@ -261,7 +261,7 @@ test('N4 goals are repaired', () => {
 });
 
 test('N5 backups from a newer version are refused', () => {
-  assert.throws(() => parseBackup('{"app":"glow-fitness","schema":3,"data":{"workouts":[]}}'), /newer version/);
+  assert.throws(() => parseBackup('{"app":"glow-fitness","schema":4,"data":{"workouts":[]}}'), /newer version/);
   assert.doesNotThrow(() => parseBackup('{"app":"glow-fitness","schema":1,"data":{"workouts":[]}}'));
 });
 

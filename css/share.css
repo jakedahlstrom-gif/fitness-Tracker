@@ -3,7 +3,7 @@
    The card image itself is drawn on a canvas and is always dark.
    ========================================================================== */
 
-.share-sheet { display: flex; flex-direction: column; gap: 16px; padding-bottom: 4px; }
+.share-sheet { display: flex; flex-direction: column; gap: 14px; padding-bottom: 4px; }
 
 /* Preview: a 4:5 (Post) or 9:16 (Story) box that never gets taller than 56dvh. */
 .share-frame {
@@ -13,7 +13,9 @@
   --share-bg: #0B0D12;
   position: relative;
   flex: none;
-  width: min(100%, calc(56dvh * var(--share-r)));
+  /* 56dvh, but never so tall that the controls below drop off a short screen */
+  --share-h: min(56dvh, calc(100dvh - 340px - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+  width: min(100%, calc(max(240px, var(--share-h)) * var(--share-r)));
   max-height: 56dvh;
   aspect-ratio: var(--share-ar);
   margin: 6px auto 0;
@@ -76,4 +78,8 @@
   box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--text), 0 0 14px color-mix(in srgb, var(--sw-a) 70%, transparent);
 }
 
-.share-sheet .share-photo { min-height: 52px; }
+.share-controls { display: flex; align-items: center; gap: 12px; }
+.share-controls .segmented { flex: 1; min-width: 0; }
+.share-photo { display: flex; align-items: center; gap: 8px; flex: none; }
+.share-photo-label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+.share-photo-label .icon { width: 18px; height: 18px; color: var(--text-3); }

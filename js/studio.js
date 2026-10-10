@@ -106,7 +106,10 @@ export function openStudio({ peek } = {}) {
           <div class="sp-greet">${esc(greeting())}, ${esc(name)}</div>
           <div class="sp-name">${esc(lookName(preview))}</div>
         </div>
-        <div class="sp-rings">${ringsSVG(rendered ? STATIC_RINGS : PREVIEW_RINGS, { stroke: 12, label: 'Preview of the rings' })}</div>
+        <div class="sp-body">
+          <div class="sp-rings">${ringsSVG(rendered ? STATIC_RINGS : PREVIEW_RINGS, { stroke: 12, label: 'Preview of the rings' })}</div>
+          <div class="sp-stats" aria-hidden="true"><span class="c-pink">Workouts</span><span class="c-purple">Minutes</span><span class="c-cyan">Active days</span></div>
+        </div>
         <div class="sp-hold">
           ${holdMiniHTML(preview.skin, { size: 72, holdable: true })}
           <span class="sp-cap">Hold to test</span>
@@ -212,19 +215,13 @@ export function openStudio({ peek } = {}) {
     btn.classList.toggle('btn-secondary', disabled);
   }
 
+  /** Bring a peeked palette card into view in its row (skins show in the preview at the top). */
   function scrollToPreview(uid, smooth = true) {
-    const el = uid && root.querySelector(`[data-uid="${CSS.escape(uid)}"]`);
+    const el = uid && root.querySelector(`.theme-card[data-uid="${CSS.escape(uid)}"]`);
     if (!el) return;
-    const behavior = smooth ? 'smooth' : 'auto';
-    if (el.classList.contains('theme-card')) {
-      const row = el.parentElement;
-      const left = el.offsetLeft - (row.clientWidth - el.offsetWidth) / 2;
-      row.scrollTo({ left: Math.max(0, left), behavior });
-    } else {
-      const body = sheet.body;
-      const top = el.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
-      if (top + el.offsetHeight > body.scrollTop + body.clientHeight) body.scrollTo({ top: top - 120, behavior });
-    }
+    const row = el.parentElement;
+    const left = el.offsetLeft - row.offsetLeft - (row.clientWidth - el.offsetWidth) / 2;
+    row.scrollTo({ left: Math.max(0, left), behavior: smooth ? 'smooth' : 'auto' });
   }
 
   // ---- Events ----

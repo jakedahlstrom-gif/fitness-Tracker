@@ -1191,12 +1191,14 @@ export function openShareSheet(spec) {
         <img class="share-img" alt="" hidden>
       </div>
       ${embedded ? `<p class="share-hint muted small">${esc(hint)}</p>` : ''}
-      ${segmented('share-format', [['post', 'Post'], ['story', 'Story']], opts.format, { ariaLabel: 'Image shape' })}
-      ${swatches}
-      <div class="set-row share-photo" hidden>
-        <span class="set-label">${icon('camera')} Add my photo</span>
-        ${toggle('share-photo', false, 'Add my photo')}
+      <div class="share-controls">
+        ${segmented('share-format', [['post', 'Post'], ['story', 'Story']], opts.format, { ariaLabel: 'Image shape' })}
+        <div class="share-photo" hidden>
+          <span class="share-photo-label" aria-hidden="true">${icon('camera')}<span>Add my photo</span></span>
+          ${toggle('share-photo', false, 'Add my photo')}
+        </div>
       </div>
+      ${swatches}
     </div>`;
   const footer = action
     ? `<button type="button" class="btn btn-primary" data-action="share-${action}" disabled>${icon(ACTION[action].icon)}<span>Preparing…</span></button>`

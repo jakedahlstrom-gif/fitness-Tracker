@@ -6,28 +6,28 @@
    ========================================================================== */
 
 /* Holo stops (legendary rim and text); deeper in light mode so text stays readable. */
-.tc-sheet, .tcd-layer, .tc-card {
+.tro-sheet, .trod-layer, .tro-card {
   --holo: #FF5CC8, #FFC85C, #5CF2FF, #B98CFF, #FF5CC8;
   --ledge: linear-gradient(90deg, color-mix(in srgb, var(--purple) 35%, transparent), color-mix(in srgb, var(--cyan) 35%, transparent));
 }
-[data-glow-theme="light"] .tc-sheet,
-[data-glow-theme="light"] .tcd-layer,
-[data-glow-theme="light"] .tc-card {
+[data-glow-theme="light"] .tro-sheet,
+[data-glow-theme="light"] .trod-layer,
+[data-glow-theme="light"] .tro-card {
   --holo: #D6127A, #B07800, #0089A3, #7C3AED, #D6127A;
   --ledge: linear-gradient(90deg, color-mix(in srgb, var(--purple) 45%, transparent), color-mix(in srgb, var(--cyan) 45%, transparent));
 }
 
-.tc-holo-text,
-.tc-rar.r-legendary .tc-rar-text,
-.tcd-rarity.r-legendary span {
+.tro-holo-text,
+.tro-rar.r-legendary .tro-rar-text,
+.trod-rarity.r-legendary span {
   background: linear-gradient(90deg, var(--holo));
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: tc-holo 4s linear infinite;
+  animation: tro-holo 4s linear infinite;
 }
-@keyframes tc-holo { to { background-position: -200% 0; } }
+@keyframes tro-holo { to { background-position: -200% 0; } }
 
 /* Rarity colors (chips, detail label) */
 .r-common { --rc: var(--cyan); }
@@ -38,43 +38,43 @@
 
 /* ---- The sheet ---------------------------------------------------------- */
 
-.tc-sheet .sheet { max-height: min(94dvh, calc(100dvh - env(safe-area-inset-top) - 8px)); }
-.tc-sheet .sheet-body { padding-top: 0; padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
-.tc-body { padding-top: 4px; }
+/* A fixed height, so switching filters never makes the sheet jump. */
+.tro-sheet .sheet { height: min(94dvh, calc(100dvh - env(safe-area-inset-top) - 8px)); max-height: none; }
+.tro-sheet .sheet-body { padding-top: 0; padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
+.tro-body { padding-top: 4px; }
 
 /* The shared art spins the legendary rim shape, which drifts out of line with the
    static face; on the shelf and in the detail the holo colors stay put instead. */
-.tc-sheet .ba-holo, .tcd .ba-holo, .tc-card .ba-holo { animation: none; }
+.tro-sheet .ba-holo, .tcd .ba-holo, .tro-card .ba-holo { animation: none; }
 
 /* Header: ring + count, then rarity chips */
-.tc-head { display: flex; align-items: center; gap: 16px; padding: 4px 0 12px; }
-.tc-ring-wrap { position: relative; width: 72px; height: 72px; flex: none; }
-.tc-ring { width: 100%; height: 100%; display: block; overflow: visible; }
-.tc-ring-track { fill: none; stroke: var(--card-3); stroke-width: 6; }
-.tc-ring-arc {
+.tro-head { display: flex; align-items: center; gap: 16px; padding: 4px 0 12px; }
+.tro-ring-wrap { position: relative; width: 72px; height: 72px; flex: none; }
+.tro-ring { width: 100%; height: 100%; display: block; overflow: visible; }
+.tro-ring-track { fill: none; stroke: var(--card-3); stroke-width: 6; }
+.tro-ring-arc {
   fill: none;
   stroke-width: 6;
   stroke-linecap: round;
   filter: url(#neon-glow);
   transition: stroke-dashoffset 1.2s var(--ease-out);
 }
-.tc-ring-ico { position: absolute; inset: 0; display: grid; place-items: center; color: var(--yellow); }
-.tc-ring-ico .icon { width: 26px; height: 26px; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--yellow) calc(var(--glow-a) * 100%), transparent)); }
-.tc-head-text { min-width: 0; }
-.tc-count { font-size: 28px; font-weight: 800; letter-spacing: -.02em; line-height: 1.05; font-variant-numeric: tabular-nums; }
-.tc-of { color: var(--text-3); }
-.tc-count-label { font-size: 12px; color: var(--text-2); font-weight: 600; letter-spacing: .04em; margin-top: 2px; }
+.tro-ring-ico { position: absolute; inset: 0; display: grid; place-items: center; color: var(--yellow); }
+.tro-ring-ico .icon { width: 26px; height: 26px; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--yellow) calc(var(--glow-a) * 100%), transparent)); }
+.tro-head-text { min-width: 0; }
+.tro-count { font-size: 28px; font-weight: 800; letter-spacing: -.02em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.tro-of { color: var(--text-3); }
+.tro-count-label { font-size: 12px; color: var(--text-2); font-weight: 600; letter-spacing: .04em; margin-top: 2px; }
 
-.tc-rars { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 12px; font-weight: 650; padding-bottom: 6px; }
-.tc-rar { display: inline-flex; align-items: center; gap: 5px; color: var(--rc); white-space: nowrap; }
-.tc-rar.zero { opacity: .45; }
-.tc-rar-dot { color: var(--text-3); }
-.tc-frame-ico { width: 13px; height: 13px; flex: none; overflow: visible; fill: color-mix(in srgb, var(--rc) 20%, transparent); stroke: var(--rc); stroke-width: 9; stroke-linejoin: round; }
-.tc-rar.r-legendary .tc-frame-ico { stroke: var(--yellow); }
+.tro-rars { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; font-size: 12px; font-weight: 650; padding-bottom: 6px; }
+.tro-rar { display: inline-flex; align-items: center; gap: 5px; color: var(--rc); white-space: nowrap; }
+.tro-rar.zero { opacity: .45; }
+.tro-frame-ico { width: 13px; height: 13px; flex: none; overflow: visible; fill: color-mix(in srgb, var(--rc) 20%, transparent); stroke: var(--rc); stroke-width: 9; stroke-linejoin: round; }
+.tro-rar.r-legendary .tro-frame-ico { stroke: var(--yellow); }
 
 /* Filter bar sticks to the top of the sheet as she scrolls */
-.tc-sentinel { height: 1px; margin-bottom: -1px; }
-.tc-filter {
+.tro-sentinel { height: 1px; margin-bottom: -1px; }
+.tro-filter {
   position: sticky;
   top: 0;
   z-index: 5;
@@ -83,18 +83,18 @@
   background: var(--card);
   transition: box-shadow .2s;
 }
-.tc-filter.stuck { box-shadow: 0 1px 0 var(--border), 0 12px 16px -14px rgba(0, 0, 0, .7); }
-[data-glow-theme="light"] .tc-filter.stuck { box-shadow: 0 1px 0 var(--border), 0 10px 14px -12px rgba(12, 18, 32, .25); }
-.tc-seg .seg { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 6px; }
-.tc-seg .seg small { font-size: 12px; font-weight: 700; color: var(--text-3); font-variant-numeric: tabular-nums; }
-.tc-seg .seg.on small { color: var(--pink); }
+.tro-filter.stuck { box-shadow: 0 1px 0 var(--border), 0 12px 16px -14px rgba(0, 0, 0, .7); }
+[data-glow-theme="light"] .tro-filter.stuck { box-shadow: 0 1px 0 var(--border), 0 10px 14px -12px rgba(12, 18, 32, .25); }
+.tro-seg .seg { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 6px; }
+.tro-seg .seg small { font-size: 12px; font-weight: 700; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.tro-seg .seg.on small { color: var(--pink); }
 
 /* "Almost there" rail */
-.tc-rail { margin-top: 10px; }
-.tc-rail-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-.tc-rail-head .icon { width: 14px; height: 14px; color: var(--yellow); }
-.tc-rail-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.tc-near {
+.tro-rail { margin-top: 10px; }
+.tro-rail-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.tro-rail-head .icon { width: 14px; height: 14px; color: var(--yellow); }
+.tro-rail-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tro-near {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
   min-width: 0;
   padding: 12px 6px 10px;
@@ -104,26 +104,26 @@
   color: var(--text);
   transition: transform .15s ease;
 }
-.tc-near:active { transform: scale(.96); }
-.tc-near-art { display: grid; place-items: center; margin-bottom: 4px; }
-.tc-near-name { max-width: 100%; font-size: 12px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.tc-near-cap { font-size: 11px; font-weight: 750; color: var(--b1); font-variant-numeric: tabular-nums; }
-[data-glow-theme="light"] .tc-near-cap { color: color-mix(in srgb, var(--b1) 70%, #000); }
+.tro-near:active { transform: scale(.96); }
+.tro-near-art { display: grid; place-items: center; margin-bottom: 4px; }
+.tro-near-name { max-width: 100%; font-size: 12px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tro-near-cap { font-size: 11px; font-weight: 750; color: var(--b1); font-variant-numeric: tabular-nums; }
+[data-glow-theme="light"] .tro-near-cap { color: color-mix(in srgb, var(--b1) 70%, #000); }
 
 /* Family sections */
-.tc-sec { margin-top: 22px; animation: tc-in .32s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 35ms); }
-.tc-rail + .tc-sec, .tc-shelves > .tc-sec:first-child { margin-top: 18px; }
-@keyframes tc-in { from { opacity: 0; transform: translateY(8px); } }
-.tc-sec-head { display: flex; align-items: center; gap: 8px; margin: 0 0 2px; font-size: inherit; }
-.tc-sec-head::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border-strong), transparent); }
-.tc-sec-ico { display: grid; color: var(--b1); }
-.tc-sec-ico .icon { width: 15px; height: 15px; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--b1) calc(var(--glow-a) * 100%), transparent)); }
+.tro-sec { margin-top: 22px; animation: tro-in .32s var(--ease-out) both; animation-delay: calc(var(--i, 0) * 35ms); }
+.tro-rail + .tro-sec, .tro-shelves > .tro-sec:first-child { margin-top: 18px; }
+@keyframes tro-in { from { opacity: 0; transform: translateY(8px); } }
+.tro-sec-head { display: flex; align-items: center; gap: 8px; margin: 0 0 2px; font-size: inherit; }
+.tro-sec-head::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border-strong), transparent); }
+.tro-sec-ico { display: grid; color: var(--b1); }
+.tro-sec-ico .icon { width: 15px; height: 15px; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--b1) calc(var(--glow-a) * 100%), transparent)); }
 
 /* The grid: no column gap, so every cell's ledge joins into one shelf per row */
-.tc-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 10px; }
+.tro-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 10px; }
 
-.tc-cell, .tc-fill { position: relative; min-width: 0; }
-.tc-cell {
+.tro-cell, .tro-fill { position: relative; min-width: 0; }
+.tro-cell {
   display: flex; flex-direction: column; align-items: center;
   padding: 8px 1px 4px;
   border: 0;
@@ -132,10 +132,10 @@
   color: var(--text);
   text-align: center;
 }
-.tc-cell:focus-visible { outline-offset: -2px; border-radius: 12px; }
+.tro-cell:focus-visible { outline-offset: -2px; border-radius: 12px; }
 
 /* Glass ledge: a 2 px line under the art plus a faint pane below it */
-.tc-cell::after, .tc-fill::after {
+.tro-cell::after, .tro-fill::after {
   content: "";
   position: absolute;
   left: 0; right: 0; top: 72px;
@@ -144,7 +144,7 @@
   background-size: 400% 100%;
   pointer-events: none;
 }
-.tc-cell::before, .tc-fill::before {
+.tro-cell::before, .tro-fill::before {
   content: "";
   position: absolute;
   left: 0; right: 0; top: 74px;
@@ -152,26 +152,26 @@
   background: linear-gradient(180deg, color-mix(in srgb, var(--cyan) 7%, transparent), transparent);
   pointer-events: none;
 }
-.tc-grid > :nth-child(4n+2)::after { background-position: 33.333% 0; }
-.tc-grid > :nth-child(4n+3)::after { background-position: 66.667% 0; }
-.tc-grid > :nth-child(4n)::after { background-position: 100% 0; }
+.tro-grid > :nth-child(4n+2)::after { background-position: 33.333% 0; }
+.tro-grid > :nth-child(4n+3)::after { background-position: 66.667% 0; }
+.tro-grid > :nth-child(4n)::after { background-position: 100% 0; }
 
-.tc-art {
+.tro-art {
   position: relative;
   isolation: isolate;
   width: 64px; height: 64px;
   margin-bottom: 14px;
   transition: transform .2s var(--spring);
 }
-.tc-art .badge-art { position: relative; }
-.tc-cell:active .tc-art { transform: scale(.9); }
+.tro-art .badge-art { position: relative; }
+.tro-cell:active .tro-art { transform: scale(.9); }
 
 /* Earned: a soft glow behind the art and a colored reflection on the ledge */
-.tc-cell.is-earned { --ga: 26%; }
-.tc-cell.is-earned.r-rare { --ga: 32%; }
-.tc-cell.is-earned.r-epic { --ga: 40%; }
-.tc-cell.is-earned.r-legendary { --ga: 48%; }
-.tc-cell.is-earned .tc-art::before {
+.tro-cell.is-earned { --ga: 26%; }
+.tro-cell.is-earned.r-rare { --ga: 32%; }
+.tro-cell.is-earned.r-epic { --ga: 40%; }
+.tro-cell.is-earned.r-legendary { --ga: 48%; }
+.tro-cell.is-earned .tro-art::before {
   content: "";
   position: absolute;
   z-index: -1;
@@ -181,11 +181,11 @@
     radial-gradient(closest-side, color-mix(in srgb, var(--b1) 55%, transparent), transparent) 50% 74px / 60px 12px no-repeat;
   pointer-events: none;
 }
-.tc-cell.is-earned.r-legendary .tc-art::before { animation: tc-breathe 2.8s ease-in-out infinite; }
-@keyframes tc-breathe { 50% { opacity: .55; } }
-[data-glow-theme="light"] .tc-cell.is-earned .tc-art::before { opacity: .6; }
+.tro-cell.is-earned.r-legendary .tro-art::before { animation: tro-breathe 2.8s ease-in-out infinite; }
+@keyframes tro-breathe { 50% { opacity: .55; } }
+[data-glow-theme="light"] .tro-cell.is-earned .tro-art::before { opacity: .6; }
 
-.tc-name {
+.tro-name {
   max-width: 100%;
   font-size: 12px; font-weight: 650; line-height: 1.25; letter-spacing: -.01em;
   display: -webkit-box;
@@ -194,11 +194,11 @@
   overflow: hidden;
   overflow-wrap: anywhere;
 }
-.tc-cell.is-locked .tc-name { color: var(--text-2); }
-.tc-sub { margin-top: 2px; font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tro-cell.is-locked .tro-name { color: var(--text-2); }
+.tro-sub { margin-top: 2px; font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* NEW: a pulsing pill, and a pop the first time the badge scrolls into view */
-.tc-new {
+.tro-new {
   position: absolute;
   z-index: 3;
   top: 2px; left: calc(50% + 10px);
@@ -208,15 +208,15 @@
   color: var(--on-accent);
   background: var(--pink);
   box-shadow: 0 0 10px color-mix(in srgb, var(--pink) calc(var(--glow-a) * 110%), transparent);
-  animation: tc-new-pulse 1.8s ease-in-out infinite;
+  animation: tro-new-pulse 1.8s ease-in-out infinite;
   pointer-events: none;
 }
-@keyframes tc-new-pulse {
+@keyframes tro-new-pulse {
   50% { transform: scale(1.08); box-shadow: 0 0 16px color-mix(in srgb, var(--pink) calc(var(--glow-a) * 160%), transparent); }
 }
-.tc-cell.is-new:not(.popped) .tc-art { transform: scale(.84); opacity: .7; }
-.tc-cell.pop .tc-art { animation: tc-pop .3s var(--spring); }
-.tc-cell.pop .tc-art::after {
+.tro-cell.is-new:not(.popped) .tro-art { transform: scale(.84); opacity: .7; }
+.tro-cell.pop .tro-art { animation: tro-pop .3s var(--spring); }
+.tro-cell.pop .tro-art::after {
   content: "";
   position: absolute;
   inset: -2px;
@@ -224,24 +224,24 @@
   border: 2px solid var(--b1);
   opacity: 0;
   pointer-events: none;
-  animation: tc-burst .6s var(--ease-out);
+  animation: tro-burst .6s var(--ease-out);
 }
-@keyframes tc-pop { 0% { transform: scale(.84); opacity: .7; } 60% { transform: scale(1.14); opacity: 1; } 100% { transform: scale(1); } }
-@keyframes tc-burst { 0% { opacity: .9; transform: scale(.8); } 100% { opacity: 0; transform: scale(1.6); } }
+@keyframes tro-pop { 0% { transform: scale(.84); opacity: .7; } 60% { transform: scale(1.14); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes tro-burst { 0% { opacity: .9; transform: scale(.8); } 100% { opacity: 0; transform: scale(1.6); } }
 
 /* Scrolled to from openTrophyCase({ focus }) */
-.tc-cell.focus-ring { animation: tc-focus 1.5s ease-out; }
-@keyframes tc-focus {
+.tro-cell.focus-ring { animation: tro-focus 1.5s ease-out; }
+@keyframes tro-focus {
   0%, 60% { box-shadow: inset 0 0 0 2px var(--cyan), 0 0 18px color-mix(in srgb, var(--cyan) calc(var(--glow-a) * 100%), transparent); }
   100% { box-shadow: inset 0 0 0 2px transparent; }
 }
 
 /* Empty / all-done states */
-.tc-empty { text-align: center; padding: 30px 12px 12px; }
-.tc-ghosts { display: flex; justify-content: center; align-items: flex-end; gap: 12px; margin-bottom: 14px; }
-.tc-ghosts .badge-art:not(:nth-child(2)) { opacity: .5; }
-.tc-empty-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-.tc-crown {
+.tro-empty { text-align: center; padding: 30px 12px 12px; }
+.tro-ghosts { display: flex; justify-content: center; align-items: flex-end; gap: 12px; margin-bottom: 14px; }
+.tro-ghosts .badge-art:not(:nth-child(2)) { opacity: .5; }
+.tro-empty-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.tro-crown {
   width: 72px; height: 72px; margin: 0 auto 12px;
   display: grid; place-items: center;
   border-radius: 50%;
@@ -249,21 +249,21 @@
   background: color-mix(in srgb, var(--yellow) 12%, transparent);
   box-shadow: 0 0 30px color-mix(in srgb, var(--yellow) calc(var(--glow-a) * 60%), transparent);
 }
-.tc-crown .icon { width: 34px; height: 34px; }
+.tro-crown .icon { width: 34px; height: 34px; }
 
 @media (max-width: 359px) {
-  .tc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .tc-cell::after, .tc-fill::after { background-size: 300% 100%; }
-  .tc-grid > :nth-child(n)::after { background-position: 0 0; }
-  .tc-grid > :nth-child(3n+2)::after { background-position: 50% 0; }
-  .tc-grid > :nth-child(3n)::after { background-position: 100% 0; }
-  .tc-rail-row { gap: 6px; }
-  .tc-head { gap: 12px; }
+  .tro-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tro-cell::after, .tro-fill::after { background-size: 300% 100%; }
+  .tro-grid > :nth-child(n)::after { background-position: 0 0; }
+  .tro-grid > :nth-child(3n+2)::after { background-position: 50% 0; }
+  .tro-grid > :nth-child(3n)::after { background-position: 100% 0; }
+  .tro-rail-row { gap: 6px; }
+  .tro-head { gap: 12px; }
 }
 
 /* ---- Badge detail dialog ----------------------------------------------- */
 
-.tcd-layer .dialog.tcd {
+.trod-layer .dialog.tcd {
   width: min(100%, 320px);
   padding: 4px 20px 16px;
   text-align: center;
@@ -279,7 +279,7 @@
     linear-gradient(135deg, var(--holo)) border-box;
 }
 
-.tcd-stage {
+.trod-stage {
   height: 200px;
   margin: 0 -20px;
   display: grid; place-items: center;
@@ -288,24 +288,24 @@
   -webkit-user-select: none;
   user-select: none;
 }
-.tcd-tilt {
+.trod-tilt {
   position: relative;
   width: 168px; height: 168px;
   transform-style: preserve-3d;
   transition: transform .4s var(--spring);
   will-change: transform;
 }
-.tcd-tilt.tracking { transition: transform .08s linear; }
-.tcd-pop { position: relative; width: 100%; height: 100%; animation: tcd-in .6s var(--spring) backwards; }
-@keyframes tcd-in { from { transform: scale(.55) rotate(-8deg); opacity: 0; } }
-.tcd-pop .badge-art { position: relative; }
+.trod-tilt.tracking { transition: transform .08s linear; }
+.trod-pop { position: relative; width: 100%; height: 100%; animation: trod-in .6s var(--spring) backwards; }
+@keyframes trod-in { from { transform: scale(.55) rotate(-8deg); opacity: 0; } }
+.trod-pop .badge-art { position: relative; }
 
-.tcd-halo { position: absolute; inset: -26px; border-radius: 50%; pointer-events: none; }
-.tcd.s-earned .tcd-halo { background: radial-gradient(closest-side, color-mix(in srgb, var(--b1) 30%, transparent), transparent); }
-.tcd.s-locked .tcd-halo { background: radial-gradient(closest-side, color-mix(in srgb, var(--b1) 8%, transparent), transparent); }
+.trod-halo { position: absolute; inset: -26px; border-radius: 50%; pointer-events: none; }
+.tcd.s-earned .trod-halo { background: radial-gradient(closest-side, color-mix(in srgb, var(--b1) 30%, transparent), transparent); }
+.tcd.s-locked .trod-halo { background: radial-gradient(closest-side, color-mix(in srgb, var(--b1) 8%, transparent), transparent); }
 
 /* Light that follows the finger, clipped to the badge's frame */
-.tcd-sheen {
+.trod-sheen {
   position: absolute; inset: 0;
   pointer-events: none;
   -webkit-mask-size: 100% 100%;
@@ -314,7 +314,7 @@
   mask-repeat: no-repeat;
   background: radial-gradient(circle at var(--mx, 50%) var(--my, 30%), rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 46%);
 }
-.tcd.r-epic .tcd-sheen, .tcd.r-legendary .tcd-sheen {
+.tcd.r-epic .trod-sheen, .tcd.r-legendary .trod-sheen {
   background:
     radial-gradient(circle at var(--mx, 50%) var(--my, 30%), rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 46%),
     linear-gradient(115deg, transparent 22%, rgba(255, 92, 200, .2) 38%, rgba(92, 242, 255, .2) 50%, rgba(255, 200, 92, .18) 62%, transparent 78%) var(--mx, 50%) var(--my, 30%) / 260% 260%;
@@ -324,25 +324,25 @@
 .tcd.s-earned .badge-art .ba-shine {
   transform-box: view-box;
   transform-origin: 50px 50px;
-  animation: tcd-shine 3.6s ease-in-out .7s infinite;
+  animation: trod-shine 3.6s ease-in-out .7s infinite;
 }
-@keyframes tcd-shine {
+@keyframes trod-shine {
   0% { transform: rotate(-30deg) translateY(-64px); }
   45%, 100% { transform: rotate(-30deg) translateY(64px); }
 }
 
-.tcd-rarity {
+.trod-rarity {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 11px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
   color: var(--rc);
 }
-.tcd-rarity .icon { width: 13px; height: 13px; color: var(--text-3); }
-.tcd .tcd-name { font-size: 22px; font-weight: 800; letter-spacing: -.01em; line-height: 1.2; margin: 4px 0 6px; overflow-wrap: anywhere; }
-.tcd .tcd-text { font-size: 15px; color: var(--text-2); line-height: 1.4; overflow-wrap: anywhere; }
-.tcd .tcd-text.flavor { color: var(--text); }
-.tcd .tcd-how { font-size: 12px; color: var(--text-3); margin-top: 6px; }
+.trod-rarity .icon { width: 13px; height: 13px; color: var(--text-3); }
+.tcd .trod-name { font-size: 22px; font-weight: 800; letter-spacing: -.01em; line-height: 1.2; margin: 4px 0 6px; overflow-wrap: anywhere; }
+.tcd .trod-text { font-size: 15px; color: var(--text-2); line-height: 1.4; overflow-wrap: anywhere; }
+.tcd .trod-text.flavor { color: var(--text); }
+.tcd .trod-how { font-size: 12px; color: var(--text-3); margin-top: 6px; }
 
-.tcd .tcd-earned {
+.tcd .trod-earned {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   margin-top: 14px;
   padding: 7px 12px;
@@ -352,17 +352,18 @@
   background: color-mix(in srgb, var(--lime) 12%, var(--card-2));
   border: 1px solid color-mix(in srgb, var(--lime) 30%, transparent);
 }
-.tcd-earned .icon { width: 15px; height: 15px; stroke-width: 3; flex: none; }
-.tcd-earned-text { display: inline-flex; flex-wrap: wrap; justify-content: center; column-gap: .3em; }
-.tcd-earned-text > span { white-space: nowrap; }
+.trod-earned .icon { width: 15px; height: 15px; stroke-width: 3; flex: none; }
+.trod-earned-text { display: inline-flex; flex-direction: column; align-items: flex-start; text-align: left; }
+.trod-earned-text > span { white-space: nowrap; }
+.trod-wn { font-size: 12px; font-weight: 600; opacity: .8; }
 
-.tcd-prog { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; text-align: left; }
-.tcd-prog .bar { height: 8px; border-radius: 4px; margin: 0; }
-.tcd-prog .bar i { border-radius: 4px; }
-.tcd-prog-text { font-size: 13px; color: var(--text-2); }
-.tcd-prog-text b { color: var(--text); font-weight: 650; }
+.trod-prog { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; text-align: left; }
+.trod-prog .bar { height: 8px; border-radius: 4px; margin: 0; }
+.trod-prog .bar i { border-radius: 4px; }
+.trod-prog-text { font-size: 13px; color: var(--text-2); }
+.trod-prog-text b { color: var(--text); font-weight: 650; }
 
-.tcd .tcd-hint {
+.tcd .trod-hint {
   display: flex; align-items: center; gap: 8px;
   margin-top: 14px;
   padding: 10px 12px;
@@ -373,14 +374,14 @@
   color: var(--text-2);
   text-align: left;
 }
-.tcd-hint .icon { width: 16px; height: 16px; flex: none; color: var(--blue); }
+.trod-hint .icon { width: 16px; height: 16px; flex: none; color: var(--blue); }
 
 .tcd .dialog-actions { margin-top: 18px; }
 .tcd .dialog-actions.single { grid-template-columns: 1fr; }
 
 /* ---- Profile card ------------------------------------------------------- */
 
-.tc-card {
+.tro-card {
   display: flex; flex-direction: column; gap: 12px;
   width: 100%;
   text-align: left;
@@ -388,35 +389,35 @@
   background: linear-gradient(160deg, color-mix(in srgb, var(--purple) 9%, var(--card)), var(--card) 60%);
   transition: transform .15s ease, border-color .2s;
 }
-.tc-card:active { transform: scale(.985); }
-.tc-card.has-new { border-color: color-mix(in srgb, var(--pink) 35%, var(--border)); }
-.tcc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.tcc-title { display: inline-flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 700; }
-.tcc-title .icon { width: 20px; height: 20px; color: var(--yellow); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--yellow) calc(var(--glow-a) * 100%), transparent)); }
-.tcc-count { display: inline-flex; align-items: center; gap: 3px; font-size: 14px; color: var(--text-3); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.tcc-count b { font-size: 17px; font-weight: 800; color: var(--text); }
-.tcc-count .icon { width: 18px; height: 18px; margin-left: 2px; }
+.tro-card:active { transform: scale(.985); }
+.tro-card.has-new { border-color: color-mix(in srgb, var(--pink) 35%, var(--border)); }
+.troc-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.troc-title { display: inline-flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 700; }
+.troc-title .icon { width: 20px; height: 20px; color: var(--yellow); filter: drop-shadow(0 0 5px color-mix(in srgb, var(--yellow) calc(var(--glow-a) * 100%), transparent)); }
+.troc-count { display: inline-flex; align-items: center; gap: 3px; font-size: 14px; color: var(--text-3); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.troc-count b { font-size: 17px; font-weight: 800; color: var(--text); }
+.troc-count .icon { width: 18px; height: 18px; margin-left: 2px; }
 
-.tcc-shelf {
+.troc-shelf {
   position: relative;
   display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
   padding: 4px 0 12px;
 }
-.tcc-shelf::after {
+.troc-shelf::after {
   content: "";
   position: absolute; left: -4px; right: -4px; bottom: 9px;
   height: 2px;
   background: var(--ledge);
 }
-.tcc-shelf::before {
+.troc-shelf::before {
   content: "";
   position: absolute; left: -4px; right: -4px; bottom: -3px;
   height: 12px;
   background: linear-gradient(180deg, color-mix(in srgb, var(--cyan) 7%, transparent), transparent);
 }
-.tcc-slot { position: relative; isolation: isolate; display: grid; place-items: end center; height: 52px; }
-.tcc-slot .badge-art { width: 100%; max-width: 48px; height: auto; }
-.tcc-slot.is-earned::before {
+.troc-slot { position: relative; isolation: isolate; display: grid; place-items: end center; height: 52px; }
+.troc-slot .badge-art { width: 100%; max-width: 48px; height: auto; }
+.troc-slot.is-earned::before {
   content: "";
   position: absolute; z-index: -1;
   left: 50%; top: 50%;
@@ -424,27 +425,27 @@
   transform: translate(-50%, -48%);
   background: radial-gradient(closest-side, color-mix(in srgb, var(--b1) 30%, transparent), transparent);
 }
-.tcc-slot.is-earned::after {
+.troc-slot.is-earned::after {
   content: "";
   position: absolute; left: 50%; bottom: -8px;
   width: 44px; height: 10px;
   transform: translateX(-50%);
   background: radial-gradient(closest-side, color-mix(in srgb, var(--b1) 55%, transparent), transparent);
 }
-[data-glow-theme="light"] .tcc-slot.is-earned::before { opacity: .6; }
-.tcc-slot .tc-new { top: -6px; left: auto; right: -2px; font-size: 8px; padding: 1px 5px; }
-.tcc-open i { width: 32px; height: 32px; margin-bottom: 4px; border-radius: 50%; border: 1.5px dashed var(--border-strong); opacity: .7; }
+[data-glow-theme="light"] .troc-slot.is-earned::before { opacity: .6; }
+.troc-slot .tro-new { top: -6px; left: auto; right: -2px; font-size: 8px; padding: 1px 5px; }
+.troc-open i { width: 32px; height: 32px; margin-bottom: 4px; border-radius: 50%; border: 1.5px dashed var(--border-strong); opacity: .7; }
 
-.tcc-hint { display: block; font-size: 13px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.tcc-hint-label { color: var(--lime); font-weight: 650; }
+.troc-hint { display: block; font-size: 13px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.troc-hint-label { color: var(--lime); font-weight: 650; }
 
-.tcc-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 2px 0; }
-.tcc-empty .tc-ghosts { margin: 0; }
-.tcc-empty-text { font-size: 14px; font-weight: 600; color: var(--text-2); text-align: center; }
+.troc-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 2px 0; }
+.troc-empty .tro-ghosts { margin: 0; }
+.troc-empty-text { font-size: 14px; font-weight: 600; color: var(--text-2); text-align: center; }
 
 /* Light theme: darken accent text on pale tints */
-[data-glow-theme="light"] .tc-rar,
-[data-glow-theme="light"] .tcd-rarity { color: color-mix(in srgb, var(--rc) 78%, #000); }
-[data-glow-theme="light"] .tcd .tcd-earned { color: color-mix(in srgb, var(--lime) 70%, #000); }
-[data-glow-theme="light"] .tcc-hint-label { color: color-mix(in srgb, var(--lime) 70%, #000); }
-[data-glow-theme="light"] .tc-seg .seg.on small { color: color-mix(in srgb, var(--pink) 80%, #000); }
+[data-glow-theme="light"] .tro-rar,
+[data-glow-theme="light"] .trod-rarity { color: color-mix(in srgb, var(--rc) 78%, #000); }
+[data-glow-theme="light"] .tcd .trod-earned { color: color-mix(in srgb, var(--lime) 70%, #000); }
+[data-glow-theme="light"] .troc-hint-label { color: color-mix(in srgb, var(--lime) 70%, #000); }
+[data-glow-theme="light"] .tro-seg .seg.on small { color: color-mix(in srgb, var(--pink) 80%, #000); }

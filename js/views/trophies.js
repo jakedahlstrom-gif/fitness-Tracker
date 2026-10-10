@@ -140,7 +140,7 @@ const firstBadgeLine = (rw) => {
 
 /** Small frame outline for a rarity chip. */
 const frameIcon = (rarity) =>
-  `<svg class="tc-frame-ico" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path d="${FRAME_PATHS[rarity]}"/></svg>`;
+  `<svg class="tro-frame-ico" viewBox="0 0 100 100" aria-hidden="true" focusable="false"><path d="${FRAME_PATHS[rarity]}"/></svg>`;
 
 // ---------------------------------------------------------------------------
 // Trophy Case sheet
@@ -152,14 +152,14 @@ function ringHTML(earned, total) {
   const R = 31;
   const C = 2 * Math.PI * R;
   const frac = total ? earned / total : 0;
-  const id = `tc-ring-g${++ringSeq}`;
+  const id = `tro-ring-g${++ringSeq}`;
   return `
-    <svg class="tc-ring" viewBox="0 0 72 72" aria-hidden="true" focusable="false">
+    <svg class="tro-ring" viewBox="0 0 72 72" aria-hidden="true" focusable="false">
       <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0" style="stop-color:var(--pink)"/><stop offset="1" style="stop-color:var(--cyan)"/>
       </linearGradient></defs>
-      <circle class="tc-ring-track" cx="36" cy="36" r="${R}"/>
-      <circle class="tc-ring-arc" cx="36" cy="36" r="${R}" stroke="url(#${id})" transform="rotate(-90 36 36)"
+      <circle class="tro-ring-track" cx="36" cy="36" r="${R}"/>
+      <circle class="tro-ring-arc" cx="36" cy="36" r="${R}" stroke="url(#${id})" transform="rotate(-90 36 36)"
         stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${C.toFixed(2)}" data-to="${(C * (1 - frac)).toFixed(2)}"
         ${frac === 0 ? 'opacity="0"' : ''}/>
     </svg>`;
@@ -169,24 +169,24 @@ function headerHTML(views) {
   const earned = views.filter((v) => v.earned);
   const byRarity = Object.fromEntries(RARITIES.map((r) => [r, earned.filter((v) => v.def.rarity === r).length]));
   const chips = RARITIES.map((r) => `
-    <span class="tc-rar r-${r}${byRarity[r] ? '' : ' zero'}">${frameIcon(r)}<span class="tc-rar-text">${byRarity[r]} ${RARITY_LABEL[r]}</span></span>`)
-    .join('<span class="tc-rar-dot" aria-hidden="true">·</span>');
+    <span class="tro-rar r-${r}${byRarity[r] ? '' : ' zero'}">${frameIcon(r)}<span class="tro-rar-text">${byRarity[r]} ${RARITY_LABEL[r]}</span></span>`)
+    .join('');
   return `
-    <div class="tc-head">
-      <div class="tc-ring-wrap">${ringHTML(earned.length, views.length)}<span class="tc-ring-ico">${icon('trophy')}</span></div>
-      <div class="tc-head-text">
-        <div class="tc-count"><b>${earned.length}</b><span class="tc-of"> / ${views.length}</span></div>
-        <div class="tc-count-label">badges</div>
+    <div class="tro-head">
+      <div class="tro-ring-wrap">${ringHTML(earned.length, views.length)}<span class="tro-ring-ico">${icon('trophy')}</span></div>
+      <div class="tro-head-text">
+        <div class="tro-count"><b>${earned.length}</b><span class="tro-of"> / ${views.length}</span></div>
+        <div class="tro-count-label">badges</div>
       </div>
     </div>
-    <div class="tc-rars" role="group" aria-label="${RARITIES.map((r) => `${byRarity[r]} ${RARITY_LABEL[r]}`).join(', ')}">${chips}</div>`;
+    <div class="tro-rars" role="group" aria-label="${RARITIES.map((r) => `${byRarity[r]} ${RARITY_LABEL[r]}`).join(', ')}">${chips}</div>`;
 }
 
 function filterHTML(filter, views) {
   const n = { all: views.length, earned: views.filter((v) => v.earned).length };
   n.locked = n.all - n.earned;
   return `
-    <div class="segmented tc-seg" role="radiogroup" aria-label="Show badges">${FILTERS.map(([v, label]) => `
+    <div class="segmented tro-seg" role="radiogroup" aria-label="Show badges">${FILTERS.map(([v, label]) => `
       <button type="button" role="radio" class="seg${v === filter ? ' on' : ''}" aria-checked="${v === filter}" data-filter="${v}">
         ${label}<small>${n[v]}</small></button>`).join('')}
     </div>`;
@@ -196,17 +196,17 @@ function railHTML(rw) {
   const hints = railHints(rw);
   if (!hints.length) return '';
   return `
-    <div class="tc-rail">
-      <div class="tc-rail-head label">${icon('sparkle')} Almost there</div>
-      <div class="tc-rail-row">${hints.map((h) => {
+    <div class="tro-rail">
+      <div class="tro-rail-head label">${icon('sparkle')} Almost there</div>
+      <div class="tro-rail-row">${hints.map((h) => {
         const v = viewOf(BADGE_BY_ID.get(h.id), rw);
         const a = amounts(v.def, v.p);
         return `
-          <button type="button" class="tc-near" data-id="${esc(v.def.id)}" style="${colorVars(v.def)}"
+          <button type="button" class="tro-near" data-id="${esc(v.def.id)}" style="${colorVars(v.def)}"
             aria-label="${esc(`Almost there: ${v.def.name}, ${progressPhrase(v.def, v.p)}, ${a.left} to go`)}">
-            <span class="tc-near-art">${badgeSVG(artDef(v.def), { state: 'locked', size: 48, progress: Math.max(v.frac, 0.02), className: 'no-glow' })}</span>
-            <span class="tc-near-name">${esc(v.def.name)}</span>
-            <span class="tc-near-cap">${esc(a.left)} to go</span>
+            <span class="tro-near-art">${badgeSVG(artDef(v.def), { state: 'locked', size: 48, progress: v.frac, className: 'no-glow' })}</span>
+            <span class="tro-near-name">${esc(v.def.name)}</span>
+            <span class="tro-near-cap">${esc(a.left)} to go</span>
           </button>`;
       }).join('')}</div>
     </div>`;
@@ -217,12 +217,12 @@ function cellHTML(v) {
   const state = earned ? 'earned' : masked ? 'secret' : 'locked';
   const art = badgeSVG(artDef(def), { state, size: 64, progress: earned ? 0 : v.frac, className: 'no-glow' });
   return `
-    <button type="button" class="tc-cell r-${def.rarity} ${earned ? 'is-earned' : 'is-locked'}${isNew ? ' is-new' : ''}"
+    <button type="button" class="tro-cell r-${def.rarity} ${earned ? 'is-earned' : 'is-locked'}${isNew ? ' is-new' : ''}"
       data-id="${esc(def.id)}" style="${colorVars(def)}" aria-label="${esc(ariaFor(v))}">
-      <span class="tc-art">${art}</span>
-      ${isNew ? '<span class="tc-new" aria-hidden="true">NEW</span>' : ''}
-      <span class="tc-name" aria-hidden="true">${esc(masked ? '???' : def.name)}</span>
-      <span class="tc-sub" aria-hidden="true">${esc(subFor(v))}</span>
+      <span class="tro-art">${art}</span>
+      ${isNew ? '<span class="tro-new" aria-hidden="true">NEW</span>' : ''}
+      <span class="tro-name" aria-hidden="true">${esc(masked ? '???' : def.name)}</span>
+      <span class="tro-sub" aria-hidden="true">${esc(subFor(v))}</span>
     </button>`;
 }
 
@@ -230,10 +230,10 @@ const gridCols = () => (window.matchMedia?.('(max-width: 359px)').matches ? 3 : 
 
 function emptyHTML(text, sub = '') {
   return `
-    <div class="tc-empty">
-      <div class="tc-ghosts" aria-hidden="true">${['w25', 'w1', 'w100'].map((id, i) =>
+    <div class="tro-empty">
+      <div class="tro-ghosts" aria-hidden="true">${['w25', 'w1', 'w100'].map((id, i) =>
         badgeSVG(id, { state: i === 1 ? 'locked' : 'secret', size: i === 1 ? 60 : 46, className: 'no-glow' })).join('')}</div>
-      <p class="tc-empty-title">${esc(text)}</p>
+      <p class="tro-empty-title">${esc(text)}</p>
       ${sub ? `<p class="muted small">${esc(sub)}</p>` : ''}
     </div>`;
 }
@@ -249,18 +249,18 @@ function shelvesHTML(views, filter, rw) {
     const done = all.filter((v) => v.earned).length;
     const fill = shown.length % cols ? cols - (shown.length % cols) : 0;
     return `
-      <section class="tc-sec" style="--i:${i++};--b1:var(--${fam.b1})" aria-label="${esc(`${fam.label}, ${done} of ${all.length} earned`)}">
-        <h3 class="tc-sec-head"><span class="tc-sec-ico">${icon(fam.id === 'count' ? 'medal' : fam.glyph)}</span>
+      <section class="tro-sec" style="--i:${i++};--b1:var(--${fam.b1})" aria-label="${esc(`${fam.label}, ${done} of ${all.length} earned`)}">
+        <h3 class="tro-sec-head"><span class="tro-sec-ico">${icon(fam.id === 'count' ? 'medal' : fam.glyph)}</span>
           <span class="label">${esc(fam.label)} · ${done}/${all.length}</span></h3>
-        <div class="tc-grid">${shown.map(cellHTML).join('')}${'<span class="tc-fill" aria-hidden="true"></span>'.repeat(fill)}</div>
+        <div class="tro-grid">${shown.map(cellHTML).join('')}${'<span class="tro-fill" aria-hidden="true"></span>'.repeat(fill)}</div>
       </section>`;
   }).join('');
 
   if (!sections) {
     return filter === 'earned'
       ? emptyHTML(firstBadgeLine(rw), 'Every badge you earn lands on this shelf.')
-      : `<div class="tc-empty tc-all-done"><div class="tc-crown">${icon('crown')}</div>
-          <p class="tc-empty-title">Every badge earned. Legend.</p><p class="muted small">The whole shelf is glowing, ${esc(who())}.</p></div>`;
+      : `<div class="tro-empty tro-all-done"><div class="tro-crown">${icon('crown')}</div>
+          <p class="tro-empty-title">Every badge earned. Legend.</p><p class="muted small">The whole shelf is glowing, ${esc(who())}.</p></div>`;
   }
   return `${filter === 'earned' ? '' : railHTML(rw)}${sections}`;
 }
@@ -285,8 +285,8 @@ export function openTrophyCase({ focus } = {}) {
 
   const sheet = openSheet({
     title: 'Trophy Case',
-    className: 'tc-sheet',
-    body: '<div class="tc-body"></div>',
+    className: 'tro-sheet',
+    body: '<div class="tro-body"></div>',
     onClose() {
       unsubscribe();
       io?.disconnect();
@@ -296,20 +296,20 @@ export function openTrophyCase({ focus } = {}) {
       if (unseen.length) store.markSeen({ badges: unseen });
     },
   });
-  const host = sheet.body.querySelector('.tc-body');
+  const host = sheet.body.querySelector('.tro-body');
 
   function draw() {
     host.innerHTML = `
       ${headerHTML(views)}
-      <div class="tc-sentinel" aria-hidden="true"></div>
-      <div class="tc-filter">${filterHTML(filter, views)}</div>
-      <div class="tc-shelves" data-filter="${filter}">${shelvesHTML(views, filter, rw)}</div>`;
+      <div class="tro-sentinel" aria-hidden="true"></div>
+      <div class="tro-filter">${filterHTML(filter, views)}</div>
+      <div class="tro-shelves" data-filter="${filter}">${shelvesHTML(views, filter, rw)}</div>`;
     watchSticky();
     watchNew();
   }
 
   function drawShelves() {
-    const shelves = host.querySelector('.tc-shelves');
+    const shelves = host.querySelector('.tro-shelves');
     shelves.dataset.filter = filter;
     shelves.innerHTML = shelvesHTML(views, filter, rw);
     watchNew();
@@ -318,7 +318,7 @@ export function openTrophyCase({ focus } = {}) {
   // NEW badges pop once as they scroll into view.
   function watchNew() {
     io?.disconnect();
-    const cells = [...host.querySelectorAll('.tc-cell.is-new')].filter((c) => {
+    const cells = [...host.querySelectorAll('.tro-cell.is-new')].filter((c) => {
       if (!popped.has(c.dataset.id)) return true;
       c.classList.add('popped');
       return false;
@@ -343,15 +343,15 @@ export function openTrophyCase({ focus } = {}) {
   // Shadow under the filter bar once it sticks to the top.
   function watchSticky() {
     stuckIO?.disconnect();
-    const sentinel = host.querySelector('.tc-sentinel');
-    const bar = host.querySelector('.tc-filter');
+    const sentinel = host.querySelector('.tro-sentinel');
+    const bar = host.querySelector('.tro-filter');
     if (!window.IntersectionObserver || !sentinel) return;
     stuckIO = new window.IntersectionObserver(([e]) => bar.classList.toggle('stuck', !e.isIntersecting), { root: sheet.body });
     stuckIO.observe(sentinel);
   }
 
   function fillRing(instant = false) {
-    const arc = host.querySelector('.tc-ring-arc');
+    const arc = host.querySelector('.tro-ring-arc');
     if (!arc) return;
     const go = () => {
       arc.removeAttribute('opacity');
@@ -365,7 +365,7 @@ export function openTrophyCase({ focus } = {}) {
     const def = BADGE_BY_ID.get(id);
     if (!def) return;
     if (filter !== 'all') setFilter('all');
-    const cell = host.querySelector(`.tc-cell[data-id="${CSS.escape(id)}"]`);
+    const cell = host.querySelector(`.tro-cell[data-id="${CSS.escape(id)}"]`);
     if (!cell) return; // hidden family or unknown id: just show the case
     const reduce = prefersReducedMotion();
     cell.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
@@ -377,25 +377,25 @@ export function openTrophyCase({ focus } = {}) {
   function setFilter(next) {
     if (next === filter || !FILTERS.some(([v]) => v === next)) return;
     filter = lastFilter = next;
-    host.querySelectorAll('.tc-seg .seg').forEach((b) => {
+    host.querySelectorAll('.tro-seg .seg').forEach((b) => {
       const on = b.dataset.filter === next;
       b.classList.toggle('on', on);
       b.setAttribute('aria-checked', String(on));
     });
     drawShelves();
     // Keep the filter bar in place if she has scrolled past the header.
-    const bar = host.querySelector('.tc-filter');
+    const bar = host.querySelector('.tro-filter');
     if (bar.classList.contains('stuck')) sheet.body.scrollTop = bar.offsetTop - sheet.body.offsetTop + 4;
   }
 
   host.addEventListener('click', (e) => {
-    const seg = e.target.closest('.tc-seg .seg');
+    const seg = e.target.closest('.tro-seg .seg');
     if (seg) {
       if (seg.dataset.filter !== filter) haptic('tick');
       setFilter(seg.dataset.filter);
       return;
     }
-    const cell = e.target.closest('.tc-cell, .tc-near');
+    const cell = e.target.closest('.tro-cell, .tro-near');
     if (cell) {
       haptic('tick');
       sound.tap();
@@ -405,11 +405,11 @@ export function openTrophyCase({ focus } = {}) {
 
   // Arrow keys move between filter options (radiogroup pattern).
   host.addEventListener('keydown', (e) => {
-    if (!e.target.closest('.tc-seg') || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+    if (!e.target.closest('.tro-seg') || !['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
     const i = FILTERS.findIndex(([v]) => v === filter);
     const next = FILTERS[(i + (e.key === 'ArrowRight' ? 1 : FILTERS.length - 1)) % FILTERS.length][0];
     setFilter(next);
-    host.querySelector(`.tc-seg [data-filter="${next}"]`)?.focus();
+    host.querySelector(`.tro-seg [data-filter="${next}"]`)?.focus();
     e.preventDefault();
   });
 
@@ -445,15 +445,14 @@ function statusHTML(v) {
   if (v.earned) {
     const n = workoutNumber(def, p.earnedOn);
     const when = parseKey(p.earnedOn).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-    // Each half stays on one line, so a narrow dialog wraps at the dot.
-    return `<p class="tcd-earned">${icon('check')}<span class="tcd-earned-text"><span>Earned ${esc(when)}</span>${
-      n ? `<span>· Workout #${fmtNum(n)}</span>` : ''}</span></p>`;
+    return `<p class="trod-earned">${icon('check')}<span class="trod-earned-text"><span>Earned ${esc(when)}</span>${
+      n ? ` <span class="trod-wn">Workout #${fmtNum(n)}</span>` : ''}</span></p>`;
   }
   if (v.masked) {
-    return `<p class="tcd-hint">${icon('sparkle')}<span>${esc(def.hint || 'Keep glowing to find this one.')}</span></p>`;
+    return `<p class="trod-hint">${icon('sparkle')}<span>${esc(def.hint || 'Keep glowing to find this one.')}</span></p>`;
   }
   if (def.measure.kind === 'allTypes' && p.tooFew) {
-    return `<p class="tcd-hint">${icon('plus')}<span>Add a type to go for ${esc(def.name)}</span></p>`;
+    return `<p class="trod-hint">${icon('plus')}<span>Add a type to go for ${esc(def.name)}</span></p>`;
   }
   const a = amounts(def, p);
   let extra = '';
@@ -462,9 +461,9 @@ function statusHTML(v) {
     extra = ` · Try ${names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0]}`;
   }
   return `
-    <div class="tcd-prog">
+    <div class="trod-prog">
       <span class="bar" style="--c:var(--b1)"><i style="width:0" data-w="${(v.frac * 100).toFixed(1)}%"></i></span>
-      <span class="tcd-prog-text"><b>${esc(progressPhrase(def, p))}</b> · ${esc(a.left)} to go${esc(extra)}</span>
+      <span class="trod-prog-text"><b>${esc(progressPhrase(def, p))}</b> · ${esc(a.left)} to go${esc(extra)}</span>
     </div>`;
 }
 
@@ -490,24 +489,24 @@ export function openBadgeDetail(id, { fromCase = false, returnFocus = null } = {
   const text = v.earned ? flavorOf(def) : v.masked ? 'A secret badge. Find it to reveal it.' : def.how;
 
   const layer = document.createElement('div');
-  layer.className = 'dialog-layer tcd-layer';
+  layer.className = 'dialog-layer trod-layer';
   layer.style.zIndex = '450';
   layer.innerHTML = `
     <div class="dialog-backdrop" data-close></div>
-    <div class="dialog tcd r-${def.rarity} s-${state}" role="dialog" aria-modal="true" aria-labelledby="tcd-name" aria-describedby="tcd-desc"
+    <div class="dialog tcd r-${def.rarity} s-${state}" role="dialog" aria-modal="true" aria-labelledby="trod-name" aria-describedby="trod-desc"
       tabindex="-1" style="${colorVars(def)}">
-      <div class="tcd-stage">
-        <div class="tcd-tilt"><div class="tcd-pop">
-          <span class="tcd-halo" aria-hidden="true"></span>
+      <div class="trod-stage">
+        <div class="trod-tilt"><div class="trod-pop">
+          <span class="trod-halo" aria-hidden="true"></span>
           ${badgeSVG(artDef(def), { state, size: 168, progress: v.earned ? 0 : v.frac, label: v.masked ? 'Secret badge' : `${def.name} badge` })}
-          ${v.earned ? `<span class="tcd-sheen" aria-hidden="true" style="-webkit-mask-image:${maskURL(def.rarity)};mask-image:${maskURL(def.rarity)}"></span>` : ''}
+          ${v.earned ? `<span class="trod-sheen" aria-hidden="true" style="-webkit-mask-image:${maskURL(def.rarity)};mask-image:${maskURL(def.rarity)}"></span>` : ''}
         </div></div>
       </div>
-      <div class="tcd-rarity r-${v.masked ? 'secret' : def.rarity}">${v.earned ? '' : icon('lock')}<span>${esc(rarityText)}</span></div>
-      <h3 class="tcd-name" id="tcd-name">${esc(name)}</h3>
-      <div id="tcd-desc">
-        <p class="tcd-text${v.earned ? ' flavor' : ''}">${esc(text)}</p>
-        ${v.earned && def.how ? `<p class="tcd-how">${esc(def.how)}</p>` : ''}
+      <div class="trod-rarity r-${v.masked ? 'secret' : def.rarity}">${v.earned ? '' : icon('lock')}<span>${esc(rarityText)}</span></div>
+      <h3 class="trod-name" id="trod-name">${esc(name)}</h3>
+      <div id="trod-desc">
+        <p class="trod-text${v.earned ? ' flavor' : ''}">${esc(text)}</p>
+        ${v.earned && def.how ? `<p class="trod-how">${esc(def.how)}</p>` : ''}
         ${statusHTML(v)}
       </div>
       <div class="dialog-actions${v.earned ? '' : ' single'}">
@@ -522,7 +521,7 @@ export function openBadgeDetail(id, { fromCase = false, returnFocus = null } = {
   const prevFocus = returnFocus || document.activeElement;
   requestAnimationFrame(() => requestAnimationFrame(() => {
     layer.classList.add('open');
-    const bar = layer.querySelector('.tcd-prog .bar i');
+    const bar = layer.querySelector('.trod-prog .bar i');
     if (bar) bar.style.width = bar.dataset.w;
   }));
   setTimeout(() => dialog.focus({ preventScroll: true }), 60);
@@ -572,7 +571,7 @@ export function openBadgeDetail(id, { fromCase = false, returnFocus = null } = {
     }
   });
 
-  if (!reduce) bindTilt(layer.querySelector('.tcd-stage'), layer.querySelector('.tcd-tilt'));
+  if (!reduce) bindTilt(layer.querySelector('.trod-stage'), layer.querySelector('.trod-tilt'));
 
   detailOpen = { close };
   return { el: dialog, close };
@@ -632,24 +631,25 @@ export function trophyCardHTML() {
   const total = views.length;
   const unseen = views.filter((v) => v.isNew).length;
   const recent = recentEarned(rw);
-  const hint = rw.nextUp[0] || null;
+  // The empty state already says "1 workout away", so skip a hint that repeats it.
+  const hint = rw.nextUp.find((h) => recent.length || h.id !== 'w1') || null;
 
   let shelf;
   if (!recent.length) {
     shelf = `
-      <span class="tcc-empty">
-        <span class="tc-ghosts" aria-hidden="true">${['w25', 'w1', 'w100'].map((id, i) =>
+      <span class="troc-empty">
+        <span class="tro-ghosts" aria-hidden="true">${['w25', 'w1', 'w100'].map((id, i) =>
           badgeSVG(id, { state: i === 1 ? 'locked' : 'secret', size: i === 1 ? 52 : 40, className: 'no-glow' })).join('')}</span>
-        <span class="tcc-empty-text">${esc(firstBadgeLine(rw))}</span>
+        <span class="troc-empty-text">${esc(firstBadgeLine(rw))}</span>
       </span>`;
   } else {
     const slots = recent.map((v) => `
-      <span class="tcc-slot is-earned r-${v.def.rarity}" style="${colorVars(v.def)}">
+      <span class="troc-slot is-earned r-${v.def.rarity}" style="${colorVars(v.def)}">
         ${badgeSVG(artDef(v.def), { state: 'earned', size: 48, className: 'no-glow' })}
-        ${v.isNew ? '<span class="tc-new">NEW</span>' : ''}
+        ${v.isNew ? '<span class="tro-new">NEW</span>' : ''}
       </span>`);
-    for (let i = recent.length; i < 6; i++) slots.push('<span class="tcc-slot tcc-open"><i></i></span>');
-    shelf = `<span class="tcc-shelf" aria-hidden="true">${slots.join('')}</span>`;
+    for (let i = recent.length; i < 6; i++) slots.push('<span class="troc-slot troc-open"><i></i></span>');
+    shelf = `<span class="troc-shelf" aria-hidden="true">${slots.join('')}</span>`;
   }
 
   const hintText = hint ? hint.text : '';
@@ -660,19 +660,19 @@ export function trophyCardHTML() {
   ].filter(Boolean).join('. ');
 
   return `
-    <button type="button" class="card tc-card${unseen ? ' has-new' : ''}" data-action="trophies" aria-label="${esc(aria)}">
-      <span class="tcc-head">
-        <span class="tcc-title">${icon('trophy')}<span>Trophy Case</span></span>
-        <span class="tcc-count"><b>${earned}</b> / ${total}${icon('chevronRight')}</span>
+    <button type="button" class="card tro-card${unseen ? ' has-new' : ''}" data-action="trophies" aria-label="${esc(aria)}">
+      <span class="troc-head">
+        <span class="troc-title">${icon('trophy')}<span>Trophy Case</span></span>
+        <span class="troc-count"><b>${earned}</b> / ${total}${icon('chevronRight')}</span>
       </span>
       ${shelf}
-      ${hintText ? `<span class="tcc-hint"><span class="tcc-hint-label">Almost there:</span> ${esc(hintText)}</span>` : ''}
+      ${hintText ? `<span class="troc-hint"><span class="troc-hint-label">Almost there:</span> ${esc(hintText)}</span>` : ''}
     </button>`;
 }
 
 /** Wire the Profile card (rendered by trophyCardHTML) inside `rootEl` to open the case. */
 export function bindTrophyCard(rootEl) {
-  const card = rootEl?.querySelector('.tc-card[data-action="trophies"]');
+  const card = rootEl?.querySelector('.tro-card[data-action="trophies"]');
   if (!card || card.dataset.bound) return;
   card.dataset.bound = '1';
   card.addEventListener('click', () => {

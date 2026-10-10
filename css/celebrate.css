@@ -303,14 +303,14 @@
 .cel-also:empty { display: none; }
 .ce-label { font-size: 11px; font-weight: 800; letter-spacing: .14em; color: var(--text-3); }
 .ce-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; }
-.ce-badge { border: 0; padding: 0; background: none; perspective: 400px; }
+.ce-badge { border: 0; padding: 0; background: none; }
 .cel-layer.hero .ce-badge { animation: badge-flip .3s ease-out both; }
 .cel-layer.hero .ce-badge:nth-child(1) { animation-delay: 1.2s; }
 .cel-layer.hero .ce-badge:nth-child(2) { animation-delay: 1.31s; }
 .cel-layer.hero .ce-badge:nth-child(3) { animation-delay: 1.42s; }
 .cel-layer.hero .ce-badge:nth-child(4) { animation-delay: 1.53s; }
 .cel-layer.hero .ce-badge:nth-child(5) { animation-delay: 1.64s; }
-@keyframes badge-flip { from { transform: rotateY(90deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes badge-flip { from { transform: perspective(400px) rotateY(90deg); opacity: 0; } to { transform: perspective(400px) rotateY(0); opacity: 1; } }
 .ce-equip {
   border: 0; border-radius: 999px;
   min-height: 24px; padding: 0 10px;
@@ -596,3 +596,12 @@ body.celebrating .hold-btn *, body.celebrating .hold-btn { animation-play-state:
 .in-gift:focus-visible .in-orb { outline: 2px solid var(--cyan); outline-offset: 6px; }
 .rv-unlock > .palette-orb, .rv-unlock > .hold-mini, .in-unlocks > .palette-orb, .in-unlocks > .hold-mini { flex: none; }
 body.celebrating .gift-pill { display: none; }
+
+/* Dark-sky layers keep the dark badge faces and full glow in the light theme too. */
+[data-glow-theme="light"] :is(.cel-layer.l3, .cel-layer.reveal, .cel-layer.intro) .badge-art .ba-face { fill: color-mix(in srgb, var(--b1) 20%, #10131A); }
+[data-glow-theme="light"] :is(.cel-layer.l3, .cel-layer.reveal, .cel-layer.intro) .badge-art.s-earned.r-common { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--b1) 45%, transparent)); }
+[data-glow-theme="light"] :is(.cel-layer.l3, .cel-layer.reveal, .cel-layer.intro) .badge-art.s-earned.r-rare { filter: drop-shadow(0 0 12px color-mix(in srgb, var(--b1) 55%, transparent)); }
+[data-glow-theme="light"] :is(.cel-layer.l3, .cel-layer.reveal, .cel-layer.intro) .badge-art.s-earned.r-epic { filter: drop-shadow(0 0 16px color-mix(in srgb, var(--b1) 65%, transparent)); }
+[data-glow-theme="light"] :is(.cel-layer.l3, .cel-layer.reveal, .cel-layer.intro) .badge-art.s-earned.r-legendary { filter: drop-shadow(0 0 22px color-mix(in srgb, var(--b1) 55%, transparent)); }
+[data-glow-theme="light"] .cel-layer.reveal .rv-scrim { background: rgba(5, 6, 12, .86); }
+[data-glow-theme="light"] .cel-layer.reveal.sky .rv-scrim { background: radial-gradient(ellipse at 50% 115%, rgba(48, 12, 72, .94), rgba(5, 6, 12, .96) 62%); }

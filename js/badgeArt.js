@@ -43,7 +43,7 @@ const ROSETTE = (() => {
 
 /** Frame outline per rarity, in a 100×100 box. */
 export const FRAME_PATHS = {
-  common: 'M50 6 A44 44 0 1 1 49.99 6 Z',
+  common: 'M50 6 A44 44 0 0 1 50 94 A44 44 0 0 1 50 6 Z', // as a path for canvas use; the SVG draws a <circle>
   rare: 'M50 4 L89.8 27 V73 L50 96 L10.2 73 V27 Z',
   epic: 'M50 4 L87 15 V47 C87 70 71 87 50 96 C29 87 13 70 13 47 V15 Z',
   legendary: ROSETTE,
@@ -79,6 +79,10 @@ export function badgeSVG(def, { state = 'earned', size = 64, progress = 0, stand
   const b2 = col(c2);
   const locked = state === 'locked' || state === 'secret';
   const shape = FRAME_PATHS[rarity] || FRAME_PATHS.common;
+  // The frame outline as an element. Common badges use a real <circle>: a closed arc path
+  // can rasterize as a quarter circle under a 3D transform (seen in Chromium).
+  const frame = (attrs) => (rarity === 'common' || !FRAME_PATHS[rarity]
+    ? `<circle cx="50" cy="50" r="44" ${attrs}/>` : `<path d="${shape}" ${attrs}/>`);
   const plate = def.plate || null;
   const legendary = rarity === 'legendary';
 
@@ -103,7 +107,7 @@ export function badgeSVG(def, { state = 'earned', size = 64, progress = 0, stand
       defs.push(`<linearGradient id="${id}-rim" x1="0" y1="0" x2="1" y2="1">${stops.map((c, i) => `<stop offset="${i / (stops.length - 1)}" style="stop-color:${c}"/>`).join('')}</linearGradient>`);
     }
     defs.push(`<radialGradient id="${id}-hi" cx="50%" cy="30%" r="60%"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>`);
-    defs.push(`<clipPath id="${id}-face"><path d="${shape}" transform="translate(50 50) scale(.82) translate(-50 -50)"/></clipPath>`);
+    defs.push(`<clipPath id="${id}-face">${frame('transform="translate(50 50) scale(.82) translate(-50 -50)"')}</clipPath>`);
     if (standalone) {
       defs.push(`<filter id="${id}-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`);
     }
@@ -112,18 +116,18 @@ export function badgeSVG(def, { state = 'earned', size = 64, progress = 0, stand
   const parts = [];
   // 1. Rim
   if (legendary && !locked) {
-    parts.push(`<g class="ba-holo"><path d="${shape}" fill="none" stroke="${rimStroke}" stroke-width="${RIM_WIDTH[rarity]}" stroke-linejoin="round"/></g>`);
+    parts.push(`<g class="ba-holo">${frame(`fill="none" stroke="${rimStroke}" stroke-width="${RIM_WIDTH[rarity]}" stroke-linejoin="round"`)}</g>`);
   } else {
-    parts.push(`<path class="ba-rim" d="${shape}" fill="none" style="stroke:${rimStroke}" stroke-width="${locked ? 2 : RIM_WIDTH[rarity]}" stroke-linejoin="round"/>`);
+    parts.push(`${frame(`class="ba-rim" fill="none" style="stroke:${rimStroke}" stroke-width="${locked ? 2 : RIM_WIDTH[rarity]}" stroke-linejoin="round"`)}`);
   }
   if (rarity === 'epic' && !locked) {
-    parts.push(`<path d="${shape}" transform="translate(50 50) scale(.9) translate(-50 -50)" fill="none" style="stroke:${b2}" stroke-width="1.5"/>`);
+    parts.push(`${frame(`transform="translate(50 50) scale(.9) translate(-50 -50)" fill="none" style="stroke:${b2}" stroke-width="1.5"`)}`);
   }
   // 2. Face
-  parts.push(`<path class="ba-face" d="${shape}" transform="translate(50 50) scale(.82) translate(-50 -50)"${faceFill ? ` style="fill:${faceFill}"` : ''}/>`);
+  parts.push(`${frame(`class="ba-face" transform="translate(50 50) scale(.82) translate(-50 -50)"${faceFill ? ` style="fill:${faceFill}"` : ''}`)}`);
   if (!locked) {
     // 3. Highlight, rare ring, specks, shine
-    parts.push(`<path d="${shape}" transform="translate(50 50) scale(.82) translate(-50 -50)" fill="url(#${id}-hi)"/>`);
+    parts.push(`${frame(`transform="translate(50 50) scale(.82) translate(-50 -50)" fill="url(#${id}-hi)"`)}`);
     if (rarity === 'rare') parts.push(`<circle cx="50" cy="50" r="33" fill="none" style="stroke:${b2}" stroke-opacity=".5" stroke-width="1.5" stroke-dasharray="2 4"/>`);
     if (rarity === 'epic') parts.push(`<path d="${SPECKS.map(([x, y, r]) => fourPoint(x, y, r)).join(' ')}" style="fill:${b2}" fill-opacity=".6"/>`);
     if (rarity !== 'common') {

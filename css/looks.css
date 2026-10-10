@@ -1,0 +1,770 @@
+/* ==========================================================================
+   Glow Fitness: unlockable looks
+   Palette ambient wash, the equip wipe, hold-button skins (main button and
+   .hold-mini previews), palette orbs, the Glow Studio sheet, the Rewards card
+   and the Profile "Glow Studio" card.
+   ========================================================================== */
+
+/* Spins the Holo and Galaxy cores. Without @property support the angle can't
+   interpolate (0deg and 360deg look the same), so those skins are simply static. */
+@property --holo-angle { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+/* ---- Ambient palette wash (behind everything) -------------------------- */
+
+body { isolation: isolate; }
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 40% at 15% 0%, color-mix(in srgb, var(--pink) calc(var(--ambient-a) * 100%), transparent), transparent 70%),
+    radial-gradient(60% 45% at 100% 100%, color-mix(in srgb, var(--cyan) calc(var(--ambient-a) * 100%), transparent), transparent 70%);
+}
+
+/* Cosmic: a quiet tiled starfield that twinkles. */
+html[data-glow-palette="cosmic"] body::before {
+  --star: rgb(255 255 255 / .5);
+  background:
+    radial-gradient(circle at 37px 61px, var(--star) 0 1px, transparent 1.5px) 0 0 / 180px 180px,
+    radial-gradient(circle at 131px 142px, var(--star) 0 1.2px, transparent 1.7px) 0 0 / 180px 180px,
+    radial-gradient(circle at 88px 23px, var(--star) 0 1.1px, transparent 1.6px) 0 0 / 240px 240px,
+    radial-gradient(circle at 197px 171px, var(--star) 0 1px, transparent 1.5px) 0 0 / 240px 240px,
+    radial-gradient(circle at 251px 97px, var(--star) 0 1.5px, transparent 2px) 0 0 / 320px 320px,
+    radial-gradient(circle at 54px 270px, var(--star) 0 1.3px, transparent 1.8px) 0 0 / 320px 320px,
+    radial-gradient(60% 40% at 15% 0%, color-mix(in srgb, var(--pink) calc(var(--ambient-a) * 100%), transparent), transparent 70%) 0 0 / 100% 100% no-repeat,
+    radial-gradient(60% 45% at 100% 100%, color-mix(in srgb, var(--cyan) calc(var(--ambient-a) * 100%), transparent), transparent 70%) 0 0 / 100% 100% no-repeat;
+  animation: cosmic-twinkle 6s ease-in-out infinite alternate;
+}
+html[data-glow-theme="light"][data-glow-palette="cosmic"] body::before { --star: color-mix(in srgb, var(--purple) 38%, transparent); }
+@keyframes cosmic-twinkle { from { opacity: .7; } to { opacity: 1; } }
+
+/* ---- Equip: a circular wipe from the tapped button (View Transitions) --- */
+
+html.vt-equip::view-transition-old(root),
+html.vt-equip::view-transition-new(root) { mix-blend-mode: normal; }
+html.vt-equip::view-transition-old(root) { animation: none; }
+html.vt-equip::view-transition-new(root) { animation: vt-reveal .65s cubic-bezier(.65, 0, .35, 1); }
+@keyframes vt-reveal {
+  from { clip-path: circle(0 at var(--vt-x, 50%) var(--vt-y, 50%)); }
+  to { clip-path: circle(140vmax at var(--vt-x, 50%) var(--vt-y, 50%)); }
+}
+
+/* ==========================================================================
+   Hold-button skins
+   Shared by the main button (.hold-btn, skin from html[data-glow-skin]) and the
+   miniature previews (.hold-mini[data-skin]). A skin sets tokens on the button:
+     --core-bg  core background      --hold-glow  core glow
+     --on-core  icon + label color   --skin-ring  progress ring stroke
+     --skin-shock  completion shockwave
+   Animated layers live on .hold-core::before (under the label) and ::after (over
+   it), so the core's own hold / pop / breathe animations stay untouched.
+   --gs scales pixel details: 1px on the 86 px main button.
+   ========================================================================== */
+
+.hold-btn { --gs: 1px; --core-inset: 4px; }
+
+:is(.hold-btn, .hold-mini) .hold-core {
+  isolation: isolate;
+  /* --p (0 → 1 while holding, set by holdButton.js / bindHoldMinis) charges the core up. */
+  filter: brightness(calc(1 + var(--p, 0) * .2)) saturate(calc(1 + var(--p, 0) * .3));
+}
+:is(.hold-btn, .hold-mini):not(.holding) .hold-core {
+  transition: transform .25s var(--spring), box-shadow .25s ease, filter .4s ease;
+}
+:is(.hold-btn, .hold-mini) .hold-core::before,
+:is(.hold-btn, .hold-mini) .hold-core::after {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+:is(.hold-btn, .hold-mini) .hold-core::before { z-index: -1; }
+
+.hold-track { stroke: var(--skin-ring, var(--cyan)); }
+.hold-progress { stroke: var(--skin-ring, var(--cyan)); }
+.hold-btn::after { border-color: var(--skin-shock, var(--cyan)); }
+
+/* ---- Miniature live buttons -------------------------------------------- */
+
+.hold-mini {
+  --size: 56px;
+  --gs: calc(var(--size) / 86);
+  --core-inset: calc(var(--size) * .11);
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  vertical-align: middle;
+  -webkit-tap-highlight-color: transparent;
+}
+.hold-mini * { pointer-events: none; }
+.hold-mini[data-holdable] {
+  cursor: pointer;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.hold-mini[data-holdable]:focus-visible { outline-offset: 4px; border-radius: 50%; }
+
+.hold-mini-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+.mini-track { fill: none; stroke: var(--skin-ring, var(--cyan)); stroke-opacity: .22; stroke-width: 4.5; }
+.mini-progress {
+  fill: none;
+  stroke: var(--skin-ring, var(--cyan));
+  stroke-width: 6;
+  stroke-linecap: round;
+  filter: url(#neon-glow);
+}
+.hold-mini:not(.holding):not(.done) .mini-progress { stroke-linecap: butt; }
+
+.hold-mini .hold-core {
+  inset: var(--core-inset);
+  gap: 0;
+  box-shadow:
+    0 0 calc(14 * var(--gs)) color-mix(in srgb, var(--hold-glow) 60%, transparent),
+    0 0 calc(32 * var(--gs)) color-mix(in srgb, var(--hold-glow) 28%, transparent),
+    inset 0 calc(2 * var(--gs)) calc(6 * var(--gs)) rgba(255, 255, 255, .35),
+    inset 0 calc(-4 * var(--gs)) calc(10 * var(--gs)) color-mix(in srgb, var(--hold-glow) 40%, rgb(0 0 0 / .35));
+}
+[data-glow-theme="light"] .hold-mini .hold-core {
+  box-shadow:
+    0 calc(4 * var(--gs)) calc(14 * var(--gs)) color-mix(in srgb, var(--hold-glow) 35%, transparent),
+    0 0 calc(24 * var(--gs)) color-mix(in srgb, var(--hold-glow) 22%, transparent),
+    inset 0 calc(2 * var(--gs)) calc(6 * var(--gs)) rgba(255, 255, 255, .35);
+}
+:where(.hold-mini) .hold-core { animation: glow-breathe 3.2s ease-in-out infinite; }
+@keyframes glow-breathe {
+  50% {
+    box-shadow:
+      0 0 calc(20 * var(--gs)) color-mix(in srgb, var(--hold-glow) 75%, transparent),
+      0 0 calc(46 * var(--gs)) color-mix(in srgb, var(--hold-glow) 38%, transparent),
+      inset 0 calc(2 * var(--gs)) calc(6 * var(--gs)) rgba(255, 255, 255, .35),
+      inset 0 calc(-4 * var(--gs)) calc(10 * var(--gs)) color-mix(in srgb, var(--hold-glow) 40%, rgb(0 0 0 / .35));
+  }
+}
+.hold-mini .hold-plus .icon { width: calc(var(--size) * .36); height: calc(var(--size) * .36); stroke-width: 2.6; }
+.hold-mini .hold-label {
+  font-size: max(7px, calc(var(--size) * .082));
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.hold-mini.holding .hold-core { transform: scale(.92); animation: none; }
+.hold-mini.done .hold-core { animation: mini-pop .7s var(--ease-out); }
+@keyframes mini-pop {
+  0% { transform: scale(.92); }
+  35% {
+    transform: scale(1.14);
+    box-shadow:
+      0 0 calc(36 * var(--gs)) var(--hold-glow),
+      0 0 calc(90 * var(--gs)) color-mix(in srgb, var(--hold-glow) 70%, transparent),
+      0 0 0 calc(5 * var(--gs)) rgb(255 255 255 / .25);
+  }
+  100% { transform: scale(1); }
+}
+.hold-mini::after {
+  content: "";
+  position: absolute;
+  inset: var(--core-inset);
+  border-radius: 50%;
+  border: calc(3 * var(--gs)) solid var(--skin-shock, var(--cyan));
+  opacity: 0;
+  pointer-events: none;
+}
+.hold-mini.done::after { animation: shockwave .8s var(--ease-out); }
+
+/* Tiny chips (Rewards nodes, celebration rows): just the core. */
+.hold-mini.is-tiny .hold-mini-ring { display: none; }
+.hold-mini.is-tiny .hold-core { inset: 0; animation: none; }
+.hold-mini.is-tiny .hold-plus .icon { width: calc(var(--size) * .5); height: calc(var(--size) * .5); stroke-width: 2.8; }
+
+/* ---- Heartbeat --------------------------------------------------------- */
+
+:is(html[data-glow-skin="heartbeat"] .hold-btn, .hold-mini[data-skin="heartbeat"]) {
+  --core-bg: radial-gradient(circle at 34% 28%, #FF8FA3, #FF2D55 48%, #B5103C);
+  --hold-glow: #FF2D55;
+  --on-core: #FFFFFF;
+  --skin-ring: #FFD1DC;
+  --skin-shock: #FF2D55;
+}
+:where(html[data-glow-skin="heartbeat"] .hold-btn, .hold-mini[data-skin="heartbeat"]) .hold-core { animation: hb 1.1s ease-in-out infinite; }
+:is(html[data-glow-skin="heartbeat"] .hold-btn, .hold-mini[data-skin="heartbeat"]).holding .hold-core { animation: hb .45s ease-in-out infinite; }
+/* The ripple each beat sends out from behind the core. */
+:is(html[data-glow-skin="heartbeat"] .hold-btn, .hold-mini[data-skin="heartbeat"])::before {
+  content: "";
+  position: absolute;
+  inset: var(--core-inset);
+  border-radius: 50%;
+  border: 2px solid #FF2D55;
+  opacity: 0;
+  pointer-events: none;
+  animation: hb-ripple 1.1s ease-out infinite;
+}
+:is(html[data-glow-skin="heartbeat"] .hold-btn, .hold-mini[data-skin="heartbeat"]).holding::before { animation-duration: .45s; }
+.hold-mini.is-tiny[data-skin="heartbeat"]::before { content: none; }
+/* `scale` (not transform) so the beat stacks on top of the press-in scale. */
+@keyframes hb {
+  0% { scale: 1; }
+  14% { scale: 1.07; }
+  28% { scale: 1; }
+  42% { scale: 1.045; }
+  70%, 100% { scale: 1; }
+}
+@keyframes hb-ripple {
+  0% { transform: scale(.95); opacity: .55; }
+  60%, 100% { transform: scale(1.55); opacity: 0; }
+}
+
+/* ---- Frost -------------------------------------------------------------- */
+
+:is(html[data-glow-skin="frost"] .hold-btn, .hold-mini[data-skin="frost"]) {
+  --core-bg:
+    repeating-conic-gradient(from 15deg, rgb(255 255 255 / .15) 0 6deg, transparent 6deg 30deg),
+    radial-gradient(circle at 34% 28%, #FFFFFF, #9BE7FF 45%, #2B8CFF);
+  --hold-glow: #5BC8FF;
+  --on-core: #08304F;
+  --skin-ring: #DFF8FF;
+  --skin-shock: #9BE7FF;
+}
+/* A sheen glides across the ice in the first second of every four. */
+:is(html[data-glow-skin="frost"] .hold-btn, .hold-mini[data-skin="frost"]) .hold-core::after {
+  content: "";
+  background: linear-gradient(105deg, transparent 30%, rgb(255 255 255 / .6) 50%, transparent 70%) no-repeat;
+  background-size: 250% 100%;
+  background-position: 125% 0;
+  animation: frost-sheen 4s ease-in-out infinite;
+}
+@keyframes frost-sheen {
+  0% { background-position: 125% 0; }
+  25%, 100% { background-position: -25% 0; }
+}
+
+/* ---- Disco Ball --------------------------------------------------------- */
+
+:is(html[data-glow-skin="disco"] .hold-btn, .hold-mini[data-skin="disco"]) {
+  --core-bg:
+    repeating-linear-gradient(0deg, rgb(255 255 255 / .22) 0 1px, transparent 1px calc(9 * var(--gs))),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / .18) 0 1px, transparent 1px calc(9 * var(--gs))),
+    radial-gradient(circle at 36% 30%, #F5F7FA, #AEB7C4 55%, #5A6372);
+  --hold-glow: #C9D3FF;
+  --on-core: #1A1F2B;
+  --skin-ring: url(#rainbow-stroke);
+  --skin-shock: #C9D3FF;
+}
+/* The mirror tiles slide sideways, so the ball seems to turn. */
+:is(html[data-glow-skin="disco"] .hold-btn, .hold-mini[data-skin="disco"]) .hold-core::before {
+  content: "";
+  background: inherit;
+  box-shadow: inset 0 calc(2 * var(--gs)) calc(6 * var(--gs)) rgb(255 255 255 / .45), inset 0 calc(-4 * var(--gs)) calc(10 * var(--gs)) rgb(26 31 43 / .35);
+  animation: disco-spin 8s linear infinite;
+}
+@keyframes disco-spin {
+  from { background-position: 0 0, 0 0, 0 0; }
+  to { background-position: 0 0, calc(72 * var(--gs)) 0, 0 0; }
+}
+/* A four-point glint pops at three spots on the ball. */
+:is(html[data-glow-skin="disco"] .hold-btn, .hold-mini[data-skin="disco"]) .hold-core::after {
+  content: "";
+  inset: 32%;
+  border-radius: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 0C12.7 8.3 15.7 11.3 24 12C15.7 12.7 12.7 15.7 12 24C11.3 15.7 8.3 12.7 0 12C8.3 11.3 11.3 8.3 12 0Z' fill='white'/%3E%3C/svg%3E") center / contain no-repeat;
+  filter: drop-shadow(0 0 calc(3 * var(--gs)) #FFFFFF);
+  transform: translate(-80%, -80%) scale(.75) rotate(45deg);
+  animation: disco-glint 3s ease-in-out infinite;
+}
+@keyframes disco-glint {
+  0% { transform: translate(-80%, -80%) scale(0) rotate(0deg); }
+  9% { transform: translate(-80%, -80%) scale(1) rotate(45deg); }
+  18%, 33.3% { transform: translate(-80%, -80%) scale(0) rotate(90deg); }
+  33.4% { transform: translate(95%, -25%) scale(0) rotate(0deg); }
+  42% { transform: translate(95%, -25%) scale(.8) rotate(45deg); }
+  51%, 66.6% { transform: translate(95%, -25%) scale(0) rotate(90deg); }
+  66.7% { transform: translate(-85%, 70%) scale(0) rotate(0deg); }
+  75% { transform: translate(-85%, 70%) scale(.65) rotate(45deg); }
+  84%, 100% { transform: translate(-85%, 70%) scale(0) rotate(90deg); }
+}
+
+/* ---- Lava Lamp ---------------------------------------------------------- */
+
+:is(html[data-glow-skin="lava"] .hold-btn, .hold-mini[data-skin="lava"]) {
+  --core-bg:
+    radial-gradient(circle at 30% 35%, #FF6B4A 0 22%, transparent 42%),
+    radial-gradient(circle at 70% 60%, #FF3D8B 0 20%, transparent 40%),
+    radial-gradient(circle at 45% 80%, #9D6BFF 0 18%, transparent 38%),
+    #2A0F2E;
+  --hold-glow: #FF6B4A;
+  --on-core: #FFFFFF;
+  --skin-ring: #FFB13D;
+  --skin-shock: #FF6B4A;
+}
+/* Three warm blobs drift past each other; faster while she holds. */
+:is(html[data-glow-skin="lava"] .hold-btn, .hold-mini[data-skin="lava"]) .hold-core::before {
+  content: "";
+  background: inherit;
+  background-size: 160% 160%, 160% 160%, 160% 160%, auto;
+  background-repeat: no-repeat;
+  background-position: 0 0, 100% 0, 50% 100%;
+  box-shadow: inset 0 calc(2 * var(--gs)) calc(6 * var(--gs)) rgb(255 255 255 / .3), inset 0 calc(-5 * var(--gs)) calc(12 * var(--gs)) rgb(0 0 0 / .35);
+  animation: lava 6s ease-in-out infinite alternate;
+}
+:is(html[data-glow-skin="lava"] .hold-btn, .hold-mini[data-skin="lava"]).holding .hold-core::before { animation-duration: 2.2s; }
+@keyframes lava {
+  from { background-position: 0 0, 100% 0, 50% 100%; }
+  to { background-position: 100% 60%, 0 100%, 30% 0; }
+}
+
+/* ---- Holo --------------------------------------------------------------- */
+
+:is(html[data-glow-skin="holo"] .hold-btn, .hold-mini[data-skin="holo"]) {
+  --core-bg:
+    radial-gradient(circle at 34% 26%, rgb(255 255 255 / .55), transparent 42%),
+    conic-gradient(#FF5CC8, #FFC85C, #5CF2FF, #B98CFF, #FF5CC8);
+  --hold-glow: #FF5CC8;
+  --on-core: #1A1024;
+  --skin-ring: url(#rainbow-stroke);
+  --skin-shock: #5CF2FF;
+}
+:is(html[data-glow-skin="holo"] .hold-btn, .hold-mini[data-skin="holo"]) .hold-core::before {
+  content: "";
+  background:
+    radial-gradient(circle at 34% 26%, rgb(255 255 255 / .55), transparent 42%),
+    conic-gradient(from var(--holo-angle), #FF5CC8, #FFC85C, #5CF2FF, #B98CFF, #FF5CC8);
+  /* the 1px foil edge plus a second, cyan glow */
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .6), 0 0 calc(40 * var(--gs)) rgb(92 242 255 / .35);
+  animation: holo-spin 6s linear infinite;
+}
+@keyframes holo-spin { to { --holo-angle: 360deg; } }
+
+/* ---- Galaxy ------------------------------------------------------------- */
+
+:is(html[data-glow-skin="galaxy"] .hold-btn, .hold-mini[data-skin="galaxy"]) {
+  --core-bg: radial-gradient(circle at 40% 30%, #3B2A8F, #160F45 60%, #07061A);
+  --hold-glow: #8F7BFF;
+  --on-core: #FFFFFF;
+  --skin-ring: #B9A6FF;
+  --skin-shock: #B9A6FF;
+}
+/* Fixed stars over two slowly swirling arms of light. */
+:is(html[data-glow-skin="galaxy"] .hold-btn, .hold-mini[data-skin="galaxy"]) .hold-core::before {
+  content: "";
+  background:
+    radial-gradient(circle at 24% 32%, #FFFFFF 0 calc(1.2 * var(--gs)), transparent calc(1.9 * var(--gs))),
+    radial-gradient(circle at 70% 22%, #FFFFFF 0 calc(1 * var(--gs)), transparent calc(1.7 * var(--gs))),
+    radial-gradient(circle at 80% 58%, #FFFFFF 0 calc(1.5 * var(--gs)), transparent calc(2.2 * var(--gs))),
+    radial-gradient(circle at 33% 74%, #FFFFFF 0 calc(1 * var(--gs)), transparent calc(1.7 * var(--gs))),
+    radial-gradient(circle at 58% 86%, #FFFFFF 0 calc(1.2 * var(--gs)), transparent calc(1.9 * var(--gs))),
+    radial-gradient(circle at 50% 50%, rgb(255 210 250 / .35), transparent 30%),
+    conic-gradient(from var(--holo-angle), transparent, rgb(167 123 255 / .5), transparent 40%, transparent 50%, rgb(255 92 225 / .32), transparent 90%),
+    radial-gradient(circle at 40% 30%, #3B2A8F, #160F45 60%, #07061A);
+  box-shadow: inset 0 calc(2 * var(--gs)) calc(6 * var(--gs)) rgb(255 255 255 / .25), inset 0 0 0 1px rgb(185 166 255 / .25);
+  animation: holo-spin 12s linear infinite;
+}
+/* A few brighter stars twinkle on top. */
+:is(html[data-glow-skin="galaxy"] .hold-btn, .hold-mini[data-skin="galaxy"]) .hold-core::after {
+  content: "";
+  background:
+    radial-gradient(circle at 18% 52%, #FFFFFF 0 calc(1.4 * var(--gs)), rgb(185 166 255 / .5) calc(2 * var(--gs)), transparent calc(4 * var(--gs))),
+    radial-gradient(circle at 64% 14%, #FFFFFF 0 calc(1.2 * var(--gs)), rgb(92 225 255 / .5) calc(1.8 * var(--gs)), transparent calc(3.5 * var(--gs))),
+    radial-gradient(circle at 84% 76%, #FFFFFF 0 calc(1.2 * var(--gs)), rgb(255 92 225 / .5) calc(1.8 * var(--gs)), transparent calc(3.5 * var(--gs)));
+  animation: galaxy-twinkle 3s ease-in-out infinite alternate;
+}
+@keyframes galaxy-twinkle { from { opacity: .4; } to { opacity: 1; } }
+
+/* ---- Busy skins: a soft shadow keeps the label crisp -------------------- */
+
+:is(html[data-glow-skin="lava"] .hold-btn, .hold-mini[data-skin="lava"],
+    html[data-glow-skin="galaxy"] .hold-btn, .hold-mini[data-skin="galaxy"],
+    html[data-glow-skin="heartbeat"] .hold-btn, .hold-mini[data-skin="heartbeat"]) .hold-core {
+  text-shadow: 0 1px 2px rgb(0 0 0 / .35);
+}
+:is(html[data-glow-skin="frost"] .hold-btn, .hold-mini[data-skin="frost"],
+    html[data-glow-skin="disco"] .hold-btn, .hold-mini[data-skin="disco"],
+    html[data-glow-skin="holo"] .hold-btn, .hold-mini[data-skin="holo"]) .hold-core {
+  text-shadow: 0 0 4px rgb(255 255 255 / .55);
+}
+
+/* ---- Light theme: pale rings would vanish on white ---------------------- */
+
+html[data-glow-theme="light"][data-glow-skin="heartbeat"] .hold-btn,
+html[data-glow-theme="light"] .hold-mini[data-skin="heartbeat"] { --skin-ring: #FF2D55; }
+html[data-glow-theme="light"][data-glow-skin="frost"] .hold-btn,
+html[data-glow-theme="light"] .hold-mini[data-skin="frost"] { --skin-ring: #2B8CFF; }
+html[data-glow-theme="light"][data-glow-skin="lava"] .hold-btn,
+html[data-glow-theme="light"] .hold-mini[data-skin="lava"] { --skin-ring: #FF7A1A; }
+html[data-glow-theme="light"][data-glow-skin="galaxy"] .hold-btn,
+html[data-glow-theme="light"] .hold-mini[data-skin="galaxy"] { --skin-ring: #7E5CF0; }
+html[data-glow-theme="light"][data-glow-skin="disco"] .hold-btn,
+html[data-glow-theme="light"] .hold-mini[data-skin="disco"] { --hold-glow: #8F9BD6; }
+
+/* ---- Pause idle animations while a celebration layer is up -------------- */
+
+body:has(.cel-layer) .hold-btn:not(.done) .hold-core,
+body:has(.cel-layer) .hold-btn .hold-core::before,
+body:has(.cel-layer) .hold-btn .hold-core::after,
+body:has(.cel-layer) .hold-btn::before,
+body:has(.cel-layer) .hold-mini:not(.cel-layer *):not(.done) .hold-core,
+body:has(.cel-layer) .hold-mini:not(.cel-layer *) .hold-core::before,
+body:has(.cel-layer) .hold-mini:not(.cel-layer *) .hold-core::after,
+body:has(.cel-layer) .hold-mini:not(.cel-layer *)::before { animation-play-state: paused; }
+
+/* ---- Palette orb -------------------------------------------------------- */
+
+.palette-orb {
+  --size: 28px;
+  display: inline-block;
+  flex: none;
+  vertical-align: middle;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 32% 26%, rgb(255 255 255 / .9), rgb(255 255 255 / .35) 14%, rgb(255 255 255 / 0) 36%),
+    conic-gradient(from 200deg, var(--pink), var(--purple), var(--cyan), var(--pink));
+  box-shadow:
+    0 0 calc(var(--size) * .4) color-mix(in srgb, var(--pink) 42%, transparent),
+    inset 0 0 0 1px rgb(255 255 255 / .22),
+    inset 0 calc(var(--size) * -.08) calc(var(--size) * .2) rgb(0 0 0 / .28);
+}
+[data-glow-theme="light"] .palette-orb {
+  box-shadow:
+    0 calc(var(--size) * .06) calc(var(--size) * .3) color-mix(in srgb, var(--pink) 32%, transparent),
+    inset 0 0 0 1px rgb(255 255 255 / .35),
+    inset 0 calc(var(--size) * -.08) calc(var(--size) * .2) rgb(0 0 0 / .18);
+}
+
+/* ==========================================================================
+   Glow Studio (js/studio.js)
+   ========================================================================== */
+
+.studio { display: flex; flex-direction: column; gap: 20px; padding-bottom: 6px; }
+
+/* Preview: a little Home screen in the previewed palette, with a holdable button. */
+.studio-preview {
+  position: relative;
+  height: 200px;
+  padding: 16px 16px 14px;
+  border-radius: 20px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto 1fr;
+  column-gap: 12px;
+  color: var(--text);
+  background:
+    radial-gradient(75% 65% at 0% 0%, color-mix(in srgb, var(--pink) calc(var(--ambient-a) * 100% + 9%), transparent), transparent 70%),
+    radial-gradient(75% 75% at 100% 100%, color-mix(in srgb, var(--cyan) calc(var(--ambient-a) * 100% + 7%), transparent), transparent 70%),
+    var(--bg);
+  border: 1px solid var(--border-strong);
+  overflow: hidden;
+}
+[data-glow-theme="light"] .studio-preview { box-shadow: inset 0 1px 0 rgb(255 255 255 / .8), 0 4px 16px rgb(12 18 32 / .06); }
+.sp-top { grid-column: 1 / -1; min-width: 0; }
+.sp-brand { font-size: 10px; font-weight: 800; letter-spacing: .28em; }
+.sp-brand i {
+  font-style: normal;
+  color: var(--pink);
+  margin: 0 .3em;
+  letter-spacing: 0;
+  text-shadow: 0 0 8px color-mix(in srgb, var(--pink) calc(var(--glow-a) * 100%), transparent);
+}
+.sp-greet {
+  margin-top: 6px;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sp-name { margin-top: 1px; font-size: 12.5px; color: var(--text-2); font-weight: 550; }
+.sp-rings { width: 100px; height: 100px; align-self: end; }
+.sp-hold { align-self: end; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 0 4px 0 0; }
+.sp-cap { font-size: 11px; font-weight: 650; color: var(--text-3); letter-spacing: .02em; white-space: nowrap; }
+
+.studio-sec-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+
+/* Themes: a horizontal, snapping row of palette cards. */
+.theme-row {
+  display: flex;
+  gap: 10px;
+  margin: 0 -20px;
+  padding: 8px 20px 12px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 20px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.theme-row::-webkit-scrollbar { display: none; }
+.theme-card {
+  position: relative;
+  flex: none;
+  width: 104px;
+  height: 120px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid var(--border-strong);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  color: var(--text);
+  text-align: left;
+  background:
+    radial-gradient(90% 70% at 0% 0%, color-mix(in srgb, var(--pink) 20%, transparent), transparent 72%),
+    radial-gradient(90% 70% at 100% 100%, color-mix(in srgb, var(--cyan) 16%, transparent), transparent 72%),
+    var(--bg);
+  transition: transform .22s var(--spring), box-shadow .2s, outline-color .2s;
+}
+.theme-card:active { transform: scale(.96); }
+.tc-top { display: flex; align-items: center; gap: 9px; }
+.tc-rings { width: 44px; height: 44px; flex: none; }
+.tc-dots { display: grid; grid-template-columns: repeat(2, 8px); gap: 5px; }
+.tc-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); box-shadow: 0 0 6px color-mix(in srgb, var(--c) 70%, transparent); }
+.tc-name {
+  margin-top: auto;
+  max-width: 100%;
+  font-size: 12.5px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tc-req { font-size: 10.5px; line-height: 1.2; color: var(--text-2); white-space: nowrap; }
+.tc-prog {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.tc-bar { flex: 1; height: 3px; border-radius: 2px; overflow: hidden; background: color-mix(in srgb, var(--text) 16%, transparent); }
+.tc-bar i { display: block; height: 100%; border-radius: 2px; background: var(--cyan); box-shadow: 0 0 6px var(--cyan); }
+.tc-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.tc-badge .icon { width: 10px; height: 10px; stroke-width: 3.4; }
+.tc-check { background: var(--cyan); color: var(--bg); box-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 70%, transparent); }
+.tc-lock { width: 14px; height: 14px; color: var(--text-2); }
+.tc-lock .icon { width: 14px; height: 14px; stroke-width: 2.2; }
+.tc-new { position: absolute; top: -8px; left: 8px; background: var(--card); }
+.theme-card.is-locked { filter: saturate(.35) brightness(.8); }
+[data-glow-theme="light"] .theme-card.is-locked { filter: saturate(.35) brightness(.94); }
+.theme-card.is-preview { transform: translateY(-3px); outline-color: color-mix(in srgb, var(--text) 45%, transparent); }
+.theme-card.is-preview:active { transform: translateY(-3px) scale(.96); }
+.theme-card.is-equipped { outline-color: var(--cyan); box-shadow: 0 0 14px color-mix(in srgb, var(--cyan) 50%, transparent); }
+
+/* Hold button: a grid of live minis. */
+.skin-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.skin-cell {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 2px 9px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--text);
+  transition: background .2s, border-color .2s, transform .15s ease;
+}
+.skin-cell:active { transform: scale(.96); }
+.skin-cell.is-preview { background: var(--card-2); border-color: var(--border-strong); }
+.sc-art { position: relative; display: grid; place-items: center; margin-bottom: 3px; }
+.sc-name { max-width: 100%; font-size: 11.5px; font-weight: 650; line-height: 1.2; text-align: center; }
+.sc-req { font-size: 10px; line-height: 1.2; color: var(--text-3); text-align: center; }
+.skin-cell.is-locked .hold-mini { filter: blur(1.5px); opacity: .55; }
+.skin-cell.is-locked .sc-name { color: var(--text-2); }
+.sc-badge {
+  position: absolute;
+  right: -5px;
+  bottom: -3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--card);
+}
+.skin-cell.is-preview .sc-badge { border-color: var(--card-2); }
+.sc-badge .icon { width: 11px; height: 11px; stroke-width: 3.2; }
+.sc-check { background: var(--cyan); color: var(--bg); box-shadow: 0 0 8px color-mix(in srgb, var(--cyan) 60%, transparent); }
+.sc-lock { background: var(--card-3); color: var(--text-2); }
+.sc-lock .icon { stroke-width: 2.4; }
+.sc-new { position: absolute; top: 3px; right: 3px; padding: 1px 6px; }
+
+.studio-equip:disabled { opacity: 1; color: var(--text-2); }
+.studio-equip .icon { width: 18px; height: 18px; }
+
+/* ==========================================================================
+   Rewards card (Goals tab): three unlock ladders
+   ========================================================================== */
+
+.rewards-card .card-head { margin-bottom: 2px; }
+.ladder { padding-top: 8px; }
+.ladder + .ladder { margin-top: 4px; border-top: 1px solid var(--border); }
+.ladder-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+.ladder-head b {
+  color: var(--c);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--c) calc(var(--glow-a) * 100%), transparent);
+}
+.ladder-head .icon { width: 16px; height: 16px; color: var(--text-3); }
+.ladder-track { position: relative; height: 50px; margin: 4px 16px 0 2px; }
+.lt-rail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 13px;
+  height: 6px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--c) 16%, transparent);
+}
+.lt-rail i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--c);
+  box-shadow: 0 0 10px var(--c), 0 0 3px var(--c);
+}
+.ln {
+  position: absolute;
+  top: 2px;
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--card);
+  display: grid;
+  place-items: center;
+  color: var(--text-3);
+}
+.ln:active { transform: scale(.9); }
+.ln > .palette-orb, .ln > .hold-mini, .ln > .ln-set { grid-area: 1 / 1; }
+.ln-reached { box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px var(--c), 0 0 12px color-mix(in srgb, var(--c) 55%, transparent); }
+.ln-check {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--c);
+  color: var(--card);
+  border: 2px solid var(--card);
+}
+.ln-check .icon { width: 9px; height: 9px; stroke-width: 4; }
+.ln-next { box-shadow: 0 0 0 2px var(--c); animation: ln-pulse 2.2s ease-in-out infinite; }
+.ln-next > .palette-orb, .ln-next > .hold-mini, .ln-next > .ln-set { opacity: .5; filter: saturate(.55); transform: scale(.72); }
+@keyframes ln-pulse {
+  50% { box-shadow: 0 0 0 2px var(--c), 0 0 14px 3px color-mix(in srgb, var(--c) 60%, transparent); }
+}
+.ln-cap {
+  position: absolute;
+  top: 33px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--c);
+  white-space: nowrap;
+}
+.ln-future { background: var(--card-2); box-shadow: inset 0 0 0 1.5px var(--border-strong); }
+.ln-lock { display: grid; }
+.ln-lock .icon { width: 13px; height: 13px; stroke-width: 2.3; }
+.ln-set { position: relative; width: 28px; height: 28px; }
+.ln-set .hold-mini { position: absolute; right: -7px; bottom: -6px; box-shadow: 0 0 0 2px var(--card); border-radius: 50%; }
+.rewards-caption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-2);
+}
+.rewards-caption .icon { width: 16px; height: 16px; color: var(--pink); flex: none; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--pink) calc(var(--glow-a) * 100%), transparent)); }
+[data-glow-theme="light"] .ln-cap,
+[data-glow-theme="light"] .ladder-head b { color: color-mix(in srgb, var(--c) 72%, #000); }
+
+/* ==========================================================================
+   Profile: Glow Studio card
+   ========================================================================== */
+
+.studio-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  color: var(--text);
+  text-align: left;
+  transition: transform .15s ease, border-color .2s;
+}
+.studio-card:active { transform: scale(.98); border-color: var(--border-strong); }
+.stc-art { position: relative; flex: none; width: 70px; height: 58px; }
+.stc-art .palette-orb { position: absolute; left: 2px; top: 2px; }
+.stc-art .hold-mini { position: absolute; right: 0; bottom: 0; }
+.stc-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.stc-head { display: flex; align-items: center; gap: 8px; }
+.stc-name { font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stc-chev { display: grid; color: var(--text-3); }
+.stc-chev .icon { width: 18px; height: 18px; }
+
+/* ---- Reduced motion: every skin is a still image ------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  :is(.hold-btn, .hold-mini) .hold-core,
+  :is(.hold-btn, .hold-mini) .hold-core::before,
+  :is(.hold-btn, .hold-mini) .hold-core::after,
+  :is(.hold-btn, .hold-mini)::before,
+  .ln-next { animation: none !important; }
+}

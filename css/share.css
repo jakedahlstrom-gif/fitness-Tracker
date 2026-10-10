@@ -1,0 +1,79 @@
+/* ==========================================================================
+   Share card sheet ("Share your win", js/shareCard.js)
+   The card image itself is drawn on a canvas and is always dark.
+   ========================================================================== */
+
+.share-sheet { display: flex; flex-direction: column; gap: 16px; padding-bottom: 4px; }
+
+/* Preview: a 4:5 (Post) or 9:16 (Story) box that never gets taller than 56dvh. */
+.share-frame {
+  --share-ar: 4 / 5;
+  --share-r: .8;
+  --share-glow: var(--pink);
+  --share-bg: #0B0D12;
+  position: relative;
+  flex: none;
+  width: min(100%, calc(56dvh * var(--share-r)));
+  max-height: 56dvh;
+  aspect-ratio: var(--share-ar);
+  margin: 6px auto 0;
+  border-radius: 18px;
+  background: var(--share-bg);
+  box-shadow: 0 0 30px color-mix(in srgb, var(--share-glow) 35%, transparent);
+  overflow: hidden;
+  transition: box-shadow .3s ease;
+}
+.share-img {
+  display: block;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  border-radius: inherit;
+  transition: opacity .2s ease;
+  -webkit-touch-callout: none;
+}
+.share-frame.is-busy .share-img { opacity: .55; }
+/* In the claude.ai frame the image is the only way out: let her press and hold it. */
+.share-frame.is-embedded .share-img { -webkit-touch-callout: default; -webkit-user-select: auto; user-select: auto; }
+
+/* Shimmer placeholder until the first image is ready. */
+.share-shimmer { display: none; position: absolute; inset: 0; overflow: hidden; }
+.share-frame.is-loading .share-shimmer { display: block; }
+.share-shimmer::before {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(60% 40% at 20% 15%, color-mix(in srgb, var(--share-glow) 22%, transparent), transparent 70%),
+    radial-gradient(60% 40% at 85% 90%, color-mix(in srgb, var(--share-glow) 12%, transparent), transparent 70%);
+}
+.share-shimmer::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .07) 50%, transparent 65%);
+  background-size: 250% 100%;
+  animation: share-shimmer 1.3s linear infinite;
+}
+.share-frame.calm .share-shimmer::after { animation: none; background: rgba(255, 255, 255, .03); }
+@keyframes share-shimmer { from { background-position: 125% 0; } to { background-position: -25% 0; } }
+
+.share-hint { text-align: center; margin-top: -4px; }
+
+/* Palette swatches (her unlocked palettes): conic A, C, B like the Rewards card. */
+.share-swatches { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.share-swatch {
+  display: grid; place-items: center;
+  width: 44px; height: 44px;
+  padding: 0; border: 0; border-radius: 50%;
+  background: transparent;
+}
+.share-swatch span {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: conic-gradient(from 200deg, var(--sw-a), var(--sw-c), var(--sw-b), var(--sw-a));
+  box-shadow: 0 0 0 1px var(--border-strong);
+  transition: transform .2s var(--spring), box-shadow .2s;
+}
+.share-swatch:active span { transform: scale(.9); }
+.share-swatch.on span {
+  box-shadow: 0 0 0 2px var(--card), 0 0 0 4px var(--text), 0 0 14px color-mix(in srgb, var(--sw-a) 70%, transparent);
+}
+
+.share-sheet .share-photo { min-height: 52px; }

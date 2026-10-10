@@ -47,7 +47,9 @@ export function initHoldButton(btn, { duration = 1500, onComplete, hint }) {
     if (!holding) return;
     const p = Math.min(1, (now - startT) / duration);
     // Ease-in-out so the ring starts gently and snaps closed at the end.
-    setProgress(p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2);
+    const eased = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+    setProgress(eased);
+    btn.style.setProperty('--p', eased); // skins brighten as the hold charges (css/looks.css)
     if (p >= 1) complete();
     else raf = requestAnimationFrame(step);
   }
@@ -64,6 +66,7 @@ export function initHoldButton(btn, { duration = 1500, onComplete, hint }) {
     setTimeout(() => {
       ring.style.transition = 'stroke-dashoffset .5s ease, opacity .3s';
       setProgress(0);
+      btn.style.setProperty('--p', 0);
       btn.classList.remove('done', 'cooldown');
     }, 900);
   }
@@ -76,6 +79,7 @@ export function initHoldButton(btn, { duration = 1500, onComplete, hint }) {
     btn.classList.remove('holding');
     ring.style.transition = 'stroke-dashoffset .35s ease';
     setProgress(0);
+    btn.style.setProperty('--p', 0);
     if (!completed) {
       sound.cancel();
       showHint();

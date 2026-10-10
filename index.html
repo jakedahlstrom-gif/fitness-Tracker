@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Glow Fitness</title>
+  <meta name="description" content="A neon-bright workout tracker. Hold to log, close your rings, keep your streak.">
+  <meta name="theme-color" content="#0B0D12">
+  <meta name="color-scheme" content="dark light">
+
+  <!-- PWA / home screen -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Glow">
+
+  <script>
+    // Apply the saved theme before first paint so there's no light/dark flash.
+    (function () {
+      try {
+        var t = localStorage.getItem('glow-fitness:theme') || 'dark';
+        if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) { /* storage blocked: stay dark */ }
+    })();
+  </script>
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <!-- Shared SVG filter that gives the rings their neon glow -->
+  <svg class="svg-defs" aria-hidden="true" focusable="false">
+    <defs>
+      <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="2.2" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+  </svg>
+
+  <main class="app" id="app">
+    <section class="view" id="view-home" data-view="home" aria-label="Home"></section>
+    <section class="view" id="view-history" data-view="history" aria-label="History" hidden></section>
+    <section class="view" id="view-goals" data-view="goals" aria-label="Goals" hidden></section>
+    <section class="view" id="view-profile" data-view="profile" aria-label="Profile" hidden></section>
+  </main>
+
+  <nav class="tabbar" aria-label="Main">
+    <a class="tab" href="#home" data-tab="home" data-icon="home"><span class="tab-icon"></span><span class="tab-label">Home</span></a>
+    <a class="tab" href="#history" data-tab="history" data-icon="history"><span class="tab-icon"></span><span class="tab-label">History</span></a>
+    <span class="tab-gap" aria-hidden="true"></span>
+    <a class="tab" href="#goals" data-tab="goals" data-icon="goals"><span class="tab-icon"></span><span class="tab-label">Goals</span></a>
+    <a class="tab" href="#profile" data-tab="profile" data-icon="profile"><span class="tab-icon"></span><span class="tab-label">Profile</span></a>
+
+    <button class="hold-btn" id="hold-btn" type="button" aria-label="Press and hold to log a workout">
+      <svg class="hold-ring" viewBox="0 0 100 100" aria-hidden="true">
+        <circle class="hold-track" cx="50" cy="50" r="46"/>
+        <circle class="hold-progress" cx="50" cy="50" r="46"/>
+      </svg>
+      <span class="hold-core">
+        <span class="hold-plus"></span>
+        <span class="hold-label">HOLD TO LOG</span>
+      </span>
+    </button>
+    <div class="hold-hint" id="hold-hint" aria-live="polite">Keep holding 💪</div>
+  </nav>
+
+  <canvas class="fx-canvas" id="fx-canvas" aria-hidden="true"></canvas>
+  <div class="toast-root" id="toast-root"></div>
+
+  <noscript><p class="noscript">Glow needs JavaScript turned on.</p></noscript>
+</body>
+</html>

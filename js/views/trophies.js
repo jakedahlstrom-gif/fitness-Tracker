@@ -383,9 +383,11 @@ export function openTrophyCase({ focus } = {}) {
       b.setAttribute('aria-checked', String(on));
     });
     drawShelves();
-    // Keep the filter bar in place if she has scrolled past the header.
-    const bar = host.querySelector('.tro-filter');
-    if (bar.classList.contains('stuck')) sheet.body.scrollTop = bar.offsetTop - sheet.body.offsetTop + 4;
+    // If she had scrolled past the header, start the new list right under the stuck filter bar.
+    if (host.querySelector('.tro-filter').classList.contains('stuck')) {
+      const sentinel = host.querySelector('.tro-sentinel');
+      sheet.body.scrollTop += sentinel.getBoundingClientRect().top - sheet.body.getBoundingClientRect().top + 1;
+    }
   }
 
   host.addEventListener('click', (e) => {
@@ -631,8 +633,7 @@ export function trophyCardHTML() {
   const total = views.length;
   const unseen = views.filter((v) => v.isNew).length;
   const recent = recentEarned(rw);
-  // The empty state already says "1 workout away", so skip a hint that repeats it.
-  const hint = rw.nextUp.find((h) => recent.length || h.id !== 'w1') || null;
+  const hint = recent.length ? rw.nextUp[0] || null : null; // the empty state has its own call to action
 
   let shelf;
   if (!recent.length) {

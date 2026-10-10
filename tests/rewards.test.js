@@ -258,7 +258,7 @@ test('R23 back-to-back big celebrations are toned down', () => {
 });
 
 test('R24 v2 data migrates to v3 with an empty ledger', () => {
-  const x = { version: 2, settings: { name: 'M' }, workouts: [] };
+  const x = { version: 2, settings: { name: 'M' }, workouts: [], meta: { createdAt: '2026-01-01T00:00:00.000Z' } };
   const s = normalize(x, TODAY);
   assert.deepEqual(s.awards, { wins: {}, badges: {}, unlocksSeen: [], backfilledAt: null, introPending: false });
   assert.deepEqual([s.settings.palette, s.settings.skin, s.settings.celebrations], ['glow', 'classic', 'full']);

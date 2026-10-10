@@ -30,7 +30,7 @@ const EV = {
     kind: 'goal', tier: 'long', goal: SAMPLE_GOALS.long, goalId: 'lab-long', key: key('goal:lab-long:L'),
     stats: [
       { value: 150, unit: 'workouts', label: 'LOGGED', color: 'pink' },
-      { value: 150, unit: '', label: 'WORKOUTS', color: 'purple' },
+      { value: 112, unit: '', label: 'HOURS', color: 'purple' },
       { value: 283, unit: '', label: 'DAYS', color: 'cyan' },
     ],
   }),

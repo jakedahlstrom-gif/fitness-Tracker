@@ -1340,7 +1340,6 @@ button.record-row:active { background: var(--card-2); }
   animation: ba-pulse 2.8s ease-in-out infinite;
 }
 [data-glow-theme="light"] .badge-art.s-earned { filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--b1) 35%, transparent)); }
-.badge-art .ba-holo { transform-box: fill-box; transform-origin: center; animation: ba-spin 6s linear infinite; }
 .badge-art .ba-sparkle { transform-box: fill-box; transform-origin: center; transform: scale(0); animation: ba-sparkle 2.4s ease-in-out infinite; }
 .badge-art.almost .ba-rim { animation: ba-almost 2.4s ease-in-out infinite; }
 /* Small badges skip the glow filter: dozens of drop-shadows are slow on phones. */
@@ -1349,7 +1348,6 @@ button.record-row:active { background: var(--card-2); }
 @keyframes ba-pulse {
   50% { filter: drop-shadow(0 0 22px color-mix(in srgb, var(--b1) 85%, transparent)); }
 }
-@keyframes ba-spin { to { transform: rotate(360deg); } }
 @keyframes ba-sparkle { 0%, 100% { transform: scale(0); } 30% { transform: scale(1); } 60% { transform: scale(0); } }
 @keyframes ba-almost {
   0%, 100% { stroke: color-mix(in srgb, var(--b1) 25%, transparent); }

@@ -56,6 +56,7 @@ const fourPoint = (x, y, r) =>
   `M${x} ${y - r} L${x + r * 0.28} ${y - r * 0.28} L${x + r} ${y} L${x + r * 0.28} ${y + r * 0.28} L${x} ${y + r} L${x - r * 0.28} ${y + r * 0.28} L${x - r} ${y} L${x - r * 0.28} ${y - r * 0.28} Z`;
 
 let seq = 0;
+const reducedMotion = () => typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 /**
  * @param {object|string} def  a badge definition (or its id)
@@ -93,7 +94,10 @@ export function badgeSVG(def, { state = 'earned', size = 64, progress = 0, stand
   const defs = [];
   if (!locked) {
     if (legendary) {
-      defs.push(`<linearGradient id="${id}-rim" x1="0" y1="0" x2="1" y2="1">${HOLO.map((c, i) => `<stop offset="${i / (HOLO.length - 1)}" stop-color="${c}"/>`).join('')}</linearGradient>`);
+      // The holo colors sweep around the rim (the frame itself stays still).
+      const spin = standalone || reducedMotion() ? ''
+        : '<animateTransform attributeName="gradientTransform" type="rotate" from="0 .5 .5" to="360 .5 .5" dur="6s" repeatCount="indefinite"/>';
+      defs.push(`<linearGradient id="${id}-rim" x1="0" y1="0" x2="1" y2="1">${HOLO.map((c, i) => `<stop offset="${i / (HOLO.length - 1)}" stop-color="${c}"/>`).join('')}${spin}</linearGradient>`);
     } else if (rarity !== 'common') {
       const stops = rarity === 'epic' ? [b1, b2, b1] : [b1, b2];
       defs.push(`<linearGradient id="${id}-rim" x1="0" y1="0" x2="1" y2="1">${stops.map((c, i) => `<stop offset="${i / (stops.length - 1)}" style="stop-color:${c}"/>`).join('')}</linearGradient>`);

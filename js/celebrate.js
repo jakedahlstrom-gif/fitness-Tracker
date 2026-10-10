@@ -532,9 +532,16 @@ function finaleStats(e) {
   const start = g.start || String(g.createdAt || '').slice(0, 10) || p.from;
   const days = Math.max(1, daysBetween(start, end) + 1);
   const numeric = (v) => Number(goalNum(p.metric, v).replace(/,/g, ''));
+  // A workouts goal would show the same number twice, so its middle chip shows time instead.
+  let middle = { value: workouts, unit: '', label: workouts === 1 ? 'WORKOUT' : 'WORKOUTS', color: 'purple' };
+  if (p.metric === 'workouts') {
+    const mins = store.state.workouts.filter((w) => w.date >= p.from && w.date <= end && (!g.typeId || w.type === g.typeId))
+      .reduce((sum, w) => sum + (w.duration || 0), 0);
+    middle = mins >= 120 ? { value: Math.round(mins / 60), unit: '', label: 'HOURS', color: 'purple' } : { value: mins, unit: '', label: 'MINUTES', color: 'purple' };
+  }
   return [
     { value: numeric(p.value), unit: goalUnit(p.metric, p.value), label: 'LOGGED', color: 'pink', decimals: p.metric === 'distance' || p.metric === 'longestDistance' },
-    { value: workouts, unit: '', label: workouts === 1 ? 'WORKOUT' : 'WORKOUTS', color: 'purple' },
+    middle,
     { value: days, unit: '', label: days === 1 ? 'DAY' : 'DAYS', color: 'cyan' },
   ];
 }
@@ -546,7 +553,7 @@ function alsoRowHTML(items, events = []) {
   }).join('');
   const unlocks = (items?.unlocks || []).map((u) => {
     const info = unlockInfo(u);
-    const art = info.type === 'palette' ? paletteOrbHTML(info.id, { size: 22 }) : holdMiniHTML(info.id, { size: 26 });
+    const art = info.type === 'palette' ? paletteOrbHTML(info.id, { size: 22, theme: 'dark' }) : holdMiniHTML(info.id, { size: 26 });
     return `<span class="cel-chip unlock">${art}<span>${esc(info.name)}</span><button type="button" class="ce-equip" data-equip="${esc(u)}">Equip</button></span>`;
   }).join('');
   const chips = events.slice(0, 3).map((ev) => chipHTML(eventChip(ev))).join('');
@@ -732,7 +739,7 @@ function badgeInfoHTML(def) {
 function unlockHeroHTML(u) {
   const info = unlockInfo(u);
   return info.type === 'palette'
-    ? `<div class="rv-orb">${paletteOrbHTML(info.id, { size: 140 })}</div>`
+    ? `<div class="rv-orb">${paletteOrbHTML(info.id, { size: 140, theme: 'dark' })}</div>`
     : `<div class="rv-mini">${holdMiniHTML(info.id, { size: 112, holdable: true, label: 'Hold to test' })}</div>`;
 }
 
@@ -765,7 +772,7 @@ function playReveal(items, opts, run) {
     + (rest.length > 5 ? `<button type="button" class="rv-more" data-act="case">+${rest.length - 5}</button>` : '');
   const unlockRows = (unlockOnly ? unlocks.slice(1) : unlocks).map((u) => {
     const info = unlockInfo(u);
-    const art = info.type === 'palette' ? paletteOrbHTML(info.id, { size: 28 }) : holdMiniHTML(info.id, { size: 32 });
+    const art = info.type === 'palette' ? paletteOrbHTML(info.id, { size: 28, theme: 'dark' }) : holdMiniHTML(info.id, { size: 32 });
     return `<div class="rv-unlock">${art}<span>Unlocked: <b>${esc(info.name)}</b> ${info.type === 'palette' ? 'theme' : 'button'}</span><button type="button" class="btn btn-secondary btn-small" data-equip="${esc(u)}">Equip</button></div>`;
   }).join('');
   const colors = hero ? badgeColors(hero) : ['pink', 'cyan'];
@@ -993,7 +1000,7 @@ export function playIntro({ sample = null } = {}) {
         <div class="in-grid">${earned.map((d, i) => `<span class="in-badge" style="--i:${Math.min(i, 12)}" title="${esc(d.name)}">${badgeSVG(d, { size: 64, className: 'no-glow' })}</span>`).join('')}</div>
         ${unlocks.length ? `<div class="in-unlocks"><span>+${plural(unlocks.length, 'look')} unlocked</span>${unlocks.map((u) => {
           const info = unlockInfo(u);
-          return info.type === 'palette' ? paletteOrbHTML(info.id, { size: 26 }) : holdMiniHTML(info.id, { size: 30 });
+          return info.type === 'palette' ? paletteOrbHTML(info.id, { size: 26, theme: 'dark' }) : holdMiniHTML(info.id, { size: 30 });
         }).join('')}</div>` : ''}
         <div class="in-actions">
           <button type="button" class="btn btn-primary" data-act="case">Open Trophy Case</button>

@@ -8,7 +8,7 @@ import {
   todayKey, addDaysKey, parseKey, fmtWeekRange, fmtShortDate, daysBetween, dateKey,
 } from '../dates.js';
 import { FREEZE_EVERY, MAX_FREEZES } from '../progress.js';
-import { TARGET_LIMITS, clampGoalTarget, isRealDateKey } from '../schema.js';
+import { TARGET_LIMITS, GOAL_LIMITS, clampGoalTarget, isRealDateKey } from '../schema.js';
 import {
   METRIC_COLOR, goalLabel, goalUnit, goalProgressText, segmented, toggle,
 } from '../components.js';
@@ -190,7 +190,7 @@ function thisYearWindow() {
 
 function template(id) {
   const types = store.types();
-  const run = types.find((t) => t.id === 'run') || types.find((t) => t.distance);
+  const run = types.find((t) => t.id === 'run') || null; // no Run type → the 5K counts any distance workout
   switch (id) {
     case 'w2s': {
       const strength = types.find((t) => t.id === 'strength');
@@ -398,7 +398,7 @@ export function openGoalSheet({ mode = 'new', goal = null, preset = null } = {})
       <section class="field">
         <div class="field-label">Track</div>
         <div class="chip-row chip-row-tight">${metricsFor(draft.tier).map((m) => `
-          <button type="button" class="chip c-${METRIC_COLOR[m]}${draft.metric === m ? ' on' : ''}" data-action="metric" data-value="${m}">${METRIC_NAMES[m]}</button>`).join('')}
+          <button type="button" class="chip c-${METRIC_COLOR[m]}${draft.metric === m ? ' on' : ''}" aria-pressed="${draft.metric === m}" data-action="metric" data-value="${m}">${METRIC_NAMES[m]}</button>`).join('')}
         </div>
       </section>
 
@@ -417,9 +417,9 @@ export function openGoalSheet({ mode = 'new', goal = null, preset = null } = {})
       <section class="field">
         <div class="field-label">Workout type</div>
         <div class="chip-row chip-row-tight">
-          <button type="button" class="chip${draft.typeId ? '' : ' on'}" data-action="type" data-value="">Any</button>
+          <button type="button" class="chip${draft.typeId ? '' : ' on'}" aria-pressed="${!draft.typeId}" data-action="type" data-value="">Any</button>
           ${typeOptions().map((t) => `
-            <button type="button" class="chip c-${t.color}${draft.typeId === t.id ? ' on' : ''}" data-action="type" data-value="${esc(t.id)}">${icon(t.icon)} ${esc(t.label)}</button>`).join('')}
+            <button type="button" class="chip c-${t.color}${draft.typeId === t.id ? ' on' : ''}" aria-pressed="${draft.typeId === t.id}" data-action="type" data-value="${esc(t.id)}">${icon(t.icon)} ${esc(t.label)}</button>`).join('')}
         </div>
       </section>
 
@@ -432,7 +432,7 @@ export function openGoalSheet({ mode = 'new', goal = null, preset = null } = {})
         </div>
         <div class="chip-row chip-row-tight">
           <button type="button" class="chip" data-action="this-year">This year</button>
-          <button type="button" class="chip${draft.end ? '' : ' on'}" data-action="no-end">No end date</button>
+          <button type="button" class="chip${draft.end ? '' : ' on'}" aria-pressed="${!draft.end}" data-action="no-end">No end date</button>
         </div>
       </section>` : ''}
 
@@ -499,7 +499,9 @@ export function openGoalSheet({ mode = 'new', goal = null, preset = null } = {})
           const next = Math.max(step, Math.round((shown + step * Number(btn.dataset.dir)) / step) * step);
           draft.target = clampGoalTarget(draft.metric, draft.tier, unitToKm(next, units));
         } else {
-          draft.target = clampGoalTarget(draft.metric, draft.tier, draft.target + step * Number(btn.dataset.dir));
+          // Stop at the minimum (clampGoalTarget swaps values ≤ 0 for a default, which is for repairing data).
+          const next = Math.max(GOAL_LIMITS[draft.metric].min, draft.target + step * Number(btn.dataset.dir));
+          draft.target = clampGoalTarget(draft.metric, draft.tier, next);
         }
         haptic('tick');
         break;
@@ -534,16 +536,29 @@ export function openGoalSheet({ mode = 'new', goal = null, preset = null } = {})
       draft.name = e.target.value;
     }
   });
+  // Typed values update the form in place: rebuilding here would remove whatever she taps next.
   host.addEventListener('change', (e) => {
+    const nameEl = host.querySelector('#goal-name');
     if (e.target.id === 'goal-target') {
       draft.target = clampGoalTarget(draft.metric, draft.tier, draft.target);
-      draw();
+      e.target.value = isDist(draft.metric) ? Math.round(kmToUnit(draft.target, units) * 100) / 100 : draft.target;
+      host.querySelector('.stepper-value span').textContent = isDist(draft.metric) ? units : goalUnit(draft.metric, draft.target);
     } else if (e.target.id === 'goal-start' || e.target.id === 'goal-end') {
       const v = e.target.value;
-      if (e.target.id === 'goal-start') draft.start = isRealDateKey(v) ? v : draft.start;
-      else draft.end = isRealDateKey(v) ? v : null;
-      draw();
+      if (e.target.id === 'goal-start') {
+        draft.start = isRealDateKey(v) ? v : draft.start;
+        e.target.value = draft.start || '';
+      } else {
+        draft.end = isRealDateKey(v) ? v : null;
+      }
+      const noEnd = host.querySelector('[data-action="no-end"]');
+      noEnd?.classList.toggle('on', !draft.end);
+      noEnd?.setAttribute('aria-pressed', String(!draft.end));
+    } else {
+      return;
     }
+    nameEl.placeholder = goalLabel({ ...draft, name: '' });
+    preview();
   });
 
   sheet.el.querySelector('.sheet-foot').addEventListener('click', async (e) => {
@@ -552,8 +567,17 @@ export function openGoalSheet({ mode = 'new', goal = null, preset = null } = {})
     if (btn.dataset.action === 'archive') {
       finished = true;
       sheet.close('archive');
-      store.archiveGoal(goal.id);
-      toast('Goal archived', { duration: 5000, action: { label: 'Undo', fn: () => store.unarchiveGoal(goal.id) } });
+      const pinned = store.archiveGoal(goal.id);
+      toast('Goal archived', {
+        duration: 5000,
+        action: {
+          label: 'Undo',
+          fn: () => {
+            store.unarchiveGoal(goal.id);
+            if (pinned) store.setFeaturedGoal(goal.id); // must run after unarchive
+          },
+        },
+      });
       return;
     }
     if (btn.dataset.action !== 'save') return;

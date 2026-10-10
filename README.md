@@ -33,7 +33,7 @@ There is also a private preview at https://claude.ai/artifact/DaKy8VYDtCdFhwaTtd
 ### Shipping an update
 
 1. Make your changes.
-2. In `sw.js`, bump `CACHE_VERSION` (e.g. `glow-v1.1.0` → `glow-v1.1.1`), and update `APP_VERSION` in `js/views/profile.js` to match. If you added a new file, add it to `APP_SHELL` too.
+2. In `sw.js`, bump `CACHE_VERSION` (e.g. `glow-v1.1.1` → `glow-v1.1.2`), and update `APP_VERSION` in `js/views/profile.js` to match. If you added a new file, add it to `APP_SHELL` too.
 3. Push to `claude/stage-1-core-logging`, the branch Pages deploys from (or to `main` once Pages uses `main`). The next time the app is opened, it downloads the new version in the background and shows **"A new version of Glow is ready ✨"** with an **Update** button.
 4. The claude.ai preview is a separate copy, so pushing doesn't change it. Ask Claude to republish it to the same link. Its page is built from `index.html` and published with `css/` and `js/`.
 

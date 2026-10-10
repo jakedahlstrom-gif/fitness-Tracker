@@ -297,7 +297,7 @@ body.ready .view:not([hidden]) { animation: view-in .28s var(--ease-out); }
 
 /* ---- Stat tiles --------------------------------------------------------- */
 
-.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .tile {
   display: flex;
   flex-direction: column;
@@ -1298,6 +1298,13 @@ button.record-row:active { background: var(--card-2); }
 .win-chip .icon { width: 15px; height: 15px; }
 
 .set-note { margin: -4px 0 6px; }
+
+/* Light theme: the neon accents are too pale as text on their own tints, so darken the text only. */
+[data-glow-theme="light"] .win-chip { color: color-mix(in srgb, var(--c) 60%, #000); }
+[data-glow-theme="light"] .pill-pr { color: color-mix(in srgb, var(--yellow) 60%, #000); }
+[data-glow-theme="light"] .pill-current { color: color-mix(in srgb, var(--lime) 60%, #000); }
+[data-glow-theme="light"] .pill-new { color: color-mix(in srgb, var(--pink) 60%, #000); }
+[data-glow-theme="light"] .add-goal { color: #007C89; }
 
 /* ---- Small phones ------------------------------------------------------- */
 

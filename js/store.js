@@ -33,8 +33,9 @@ let needsSave = false;
 let state = load();
 
 function load() {
-  if (typeof localStorage === 'undefined') return defaultState(); // e.g. unit tests in Node
   try {
+    // No storage at all (unit tests in Node), or blocked storage whose getter throws (some frames).
+    if (typeof localStorage === 'undefined') return defaultState();
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const obj = JSON.parse(raw);
@@ -201,9 +202,8 @@ export const store = {
     const list = state.goals.filter((g) => !!g.archivedAt === archived);
     if (archived) return list.sort((a, b) => String(b.archivedAt).localeCompare(String(a.archivedAt)));
     const status = new Map(store.derived().goals.map((p) => [p.id, p.status]));
-    return list.sort((a, b) => (a.tier === 'long' && b.tier === 'long'
-      ? (LONG_RANK[status.get(a.id)] ?? 0) - (LONG_RANK[status.get(b.id)] ?? 0)
-      : 0) || a.createdAt.localeCompare(b.createdAt));
+    const rank = (g) => (g.tier === 'long' ? (LONG_RANK[status.get(g.id)] ?? 0) : 0);
+    return list.sort((a, b) => rank(a) - rank(b) || a.createdAt.localeCompare(b.createdAt));
   },
 
   getGoal(id) { return state.goals.find((g) => g.id === id) || null; },
@@ -228,12 +228,15 @@ export const store = {
     return g;
   },
 
+  /** Archive a goal. Returns true if it was pinned to Home (so Undo can pin it again). */
   archiveGoal(id) {
     const g = store.getGoal(id);
-    if (!g) return;
+    if (!g) return false;
+    const wasPinned = state.settings.featuredGoalId === id;
     g.archivedAt = nowIso();
-    if (state.settings.featuredGoalId === id) state.settings.featuredGoalId = null;
+    if (wasPinned) state.settings.featuredGoalId = null;
     commit('goals');
+    return wasPinned;
   },
 
   unarchiveGoal(id) {

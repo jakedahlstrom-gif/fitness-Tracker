@@ -376,7 +376,8 @@ export function milestones(b, a) {
       ev.push({ kind: 'goal', tier: p.tier, goalId: p.id, goal: p.goal, key: `goal:${p.id}:${p.periodKey}`, size: SIZE[p.tier], priority: PRIORITY[`goal:${p.tier}`] });
     }
   }
-  if (a.weekly.earned > b.weekly.earned) {
+  // Only when a freeze is actually banked (a backfill can earn one that a later past miss spends at once).
+  if (a.weekly.earned > b.weekly.earned && a.weekly.freezes > b.weekly.freezes) {
     ev.push({ kind: 'freeze', freezes: a.weekly.freezes, key: `freeze:${a.weekly.lastEarnedWeek}`, size: 'medium', priority: PRIORITY.freeze });
   }
   if (a.weekly.thisWeek.met && !b.weekly.thisWeek.met) {

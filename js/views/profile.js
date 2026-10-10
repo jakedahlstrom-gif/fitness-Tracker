@@ -14,7 +14,7 @@ import { applyTheme } from '../theme.js';
 import { haptic, sound, unlockAudio } from '../effects.js';
 import { TYPE_COLORS } from '../store.js';
 
-export const APP_VERSION = '1.1.0 · Stage 2';
+export const APP_VERSION = '1.1.1 · Stage 2';
 
 let installPrompt = null; // Chrome/Android "beforeinstallprompt" event
 window.addEventListener('beforeinstallprompt', (e) => {

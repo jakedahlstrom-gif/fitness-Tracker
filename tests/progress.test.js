@@ -264,3 +264,36 @@ test('N5 backups from a newer version are refused', () => {
   assert.throws(() => parseBackup('{"app":"glow-fitness","schema":3,"data":{"workouts":[]}}'), /newer version/);
   assert.doesNotThrow(() => parseBackup('{"app":"glow-fitness","schema":1,"data":{"workouts":[]}}'));
 });
+
+// ---- Regressions found in review ----
+
+test('R1 no freeze event when a backfilled freeze is spent at once', () => {
+  // 3 met weeks, then a 4th week that becomes met by this save; the following finished week is empty,
+  // so the freeze earned in the replay is spent straight away and the bank never grows.
+  const base = [...fill('2026-08-03', 3), ...fill('2026-08-10', 3), ...fill('2026-08-17', 3), ...fill('2026-08-24', 2)];
+  const b = derive(S({ workouts: base }), TODAY);
+  const a = derive(S({ workouts: [...base, W('2026-08-26')] }), TODAY);
+  assert.equal(a.weekly.earned, 1);
+  assert.equal(a.weekly.freezes, 0);
+  assert.equal(milestones(b, a).filter((e) => e.kind === 'freeze').length, 0);
+});
+
+test('R2 store.goals() lists long goals active first, whatever the creation order', async () => {
+  const { store } = await import('../js/store.js');
+  store.onError(() => {});
+  store.reset();
+  const long = (extra) => ({ tier: 'long', start: '2020-01-01', end: null, ...extra });
+  const met = store.addGoal(long({ metric: 'longestDistance', target: 5, name: 'met 5k' }));
+  store.addGoal({ tier: 'short', metric: 'workouts', target: 2, name: 'weekly' });
+  const active = store.addGoal(long({ metric: 'workouts', target: 10000, name: 'active' }));
+  store.addWorkout({ type: 'run', date: '2020-02-01', duration: 30, distanceKm: 5 });
+  const longs = store.goals().filter((g) => g.tier === 'long').map((g) => g.id);
+  assert.deepEqual(longs, [active.id, met.id]);
+  // Undo of an archive can restore the Home pin
+  store.setFeaturedGoal(active.id);
+  assert.equal(store.archiveGoal(active.id), true);
+  assert.equal(store.settings.featuredGoalId, null);
+  store.unarchiveGoal(active.id);
+  store.setFeaturedGoal(active.id);
+  assert.equal(store.settings.featuredGoalId, active.id);
+});

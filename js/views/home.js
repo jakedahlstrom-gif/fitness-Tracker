@@ -11,7 +11,7 @@ import { weekStats, monthStats, dailyStreak, longestWorkout, groupByDate } from 
 import { ringsSVG, miniRingSVG, animateRings, typeBadge } from '../components.js';
 import { navigate } from '../router.js';
 import { openLogSheet } from '../logSheet.js';
-import { exportBackup } from '../backup.js';
+import { startExport } from '../backupFlow.js';
 import { toast } from '../toast.js';
 
 let weekOffset = 0; // 0 = this week, -1 = last week, …
@@ -267,11 +267,9 @@ function bindHome(el) {
       case 'goto-goals':
         navigate('goals');
         break;
-      case 'backup-now': {
-        const r = await exportBackup();
-        if (r !== 'cancelled') toast('Backup saved 💾');
+      case 'backup-now':
+        startExport();
         break;
-      }
       case 'backup-snooze':
         store.updateMeta({ backupNudgeSnoozedUntil: new Date(Date.now() + 14 * 86400000).toISOString() });
         break;

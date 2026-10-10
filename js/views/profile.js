@@ -3,11 +3,12 @@
 import { store } from '../store.js';
 import { photos } from '../photos.js';
 import { icon, TYPE_ICONS } from '../icons.js';
-import { esc, fmtNum, plural, isIOS, isStandalone } from '../util.js';
+import { esc, fmtNum, plural, isIOS, isStandalone, isEmbedded } from '../util.js';
 import { totals, longestDailyStreak } from '../stats.js';
 import { segmented, toggle } from '../components.js';
 import { openSheet, confirmDialog } from '../sheet.js';
-import { exportBackup, readBackup, restoreBackup } from '../backup.js';
+import { readBackup } from '../backup.js';
+import { startExport, confirmAndRestore } from '../backupFlow.js';
 import { toast } from '../toast.js';
 import { applyTheme } from '../theme.js';
 import { haptic, sound, unlockAudio } from '../effects.js';
@@ -114,7 +115,7 @@ export function renderProfile(el) {
 }
 
 function installCardHTML() {
-  if (isStandalone()) return '';
+  if (isStandalone() || isEmbedded()) return '';
   if (installPrompt) {
     return `
       <article class="card install-card">
@@ -190,11 +191,9 @@ function bindProfile(el) {
           renderProfile(el);
         }
         break;
-      case 'export': {
-        const r = await exportBackup().catch((err) => { toast(`Export failed: ${err.message}`); return 'error'; });
-        if (r === 'shared' || r === 'downloaded') toast('Backup saved 💾');
+      case 'export':
+        startExport();
         break;
-      }
       case 'import':
         el.querySelector('[data-import]').click();
         break;
@@ -222,18 +221,7 @@ function bindProfile(el) {
     e.target.value = '';
     if (!file) return;
     try {
-      const backup = await readBackup(file);
-      const n = backup.data.workouts.length;
-      const when = backup.exportedAt ? new Date(backup.exportedAt).toLocaleDateString() : 'an unknown date';
-      const ok = await confirmDialog({
-        title: 'Restore this backup?',
-        message: `It has ${plural(n, 'workout')} from ${when}. This replaces the ${plural(store.state.workouts.length, 'workout')} on this device.`,
-        confirmText: 'Restore',
-      });
-      if (!ok) return;
-      const { photosRestored } = await restoreBackup(backup);
-      applyTheme(store.settings.theme);
-      toast(photosRestored ? `Restored ${plural(n, 'workout')} ✨` : `Restored ${plural(n, 'workout')} (photos skipped)`);
+      await confirmAndRestore(await readBackup(file));
     } catch (err) {
       toast(err.message || 'Import failed');
     }

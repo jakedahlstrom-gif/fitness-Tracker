@@ -12,16 +12,7 @@ const APP_ID = 'glow-fitness';
  * Mail…); elsewhere it downloads. Resolves 'shared' | 'downloaded' | 'cancelled'.
  */
 export async function exportBackup() {
-  let photoMap = {};
-  try { photoMap = await photos.all(); } catch { /* no photos / IndexedDB unavailable */ }
-
-  const payload = {
-    app: APP_ID,
-    schema: SCHEMA_VERSION,
-    exportedAt: new Date().toISOString(),
-    data: store.state,
-    photos: photoMap,
-  };
+  const payload = await buildBackup();
   const name = `glow-backup-${dateKey()}.json`;
   const file = new File([JSON.stringify(payload)], name, { type: 'application/json' });
 
@@ -48,18 +39,36 @@ export async function exportBackup() {
   return 'downloaded';
 }
 
-/** Read and validate a backup file. Throws a friendly Error if it isn't one. */
-export async function readBackup(file) {
+/** Everything worth keeping, as one object. */
+export async function buildBackup() {
+  let photoMap = {};
+  try { photoMap = await photos.all(); } catch { /* no photos / IndexedDB unavailable */ }
+  return {
+    app: APP_ID,
+    schema: SCHEMA_VERSION,
+    exportedAt: new Date().toISOString(),
+    data: store.state,
+    photos: photoMap,
+  };
+}
+
+/** Validate backup text. Throws a friendly Error if it isn't a Glow backup. */
+export function parseBackup(text) {
   let obj;
   try {
-    obj = JSON.parse(await file.text());
+    obj = JSON.parse(text);
   } catch {
-    throw new Error("That file isn't a valid backup (couldn't read the JSON).");
+    throw new Error("That isn't a valid backup (couldn't read the JSON).");
   }
   if (obj?.app !== APP_ID || !obj.data || !Array.isArray(obj.data.workouts)) {
     throw new Error("That doesn't look like a Glow backup file.");
   }
   return obj;
+}
+
+/** Read and validate a backup file. */
+export async function readBackup(file) {
+  return parseBackup(await file.text());
 }
 
 /** Replace all current data with a validated backup. */

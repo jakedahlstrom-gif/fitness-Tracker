@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-glow-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -24,7 +24,7 @@
       try {
         var t = localStorage.getItem('glow-fitness:theme') || 'dark';
         if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', t);
+        document.documentElement.setAttribute('data-glow-theme', t);
       } catch (e) { /* storage blocked: stay dark */ }
     })();
   </script>

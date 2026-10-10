@@ -2,7 +2,7 @@
 
 import { store } from './store.js';
 import { icon } from './icons.js';
-import { $, $$ } from './util.js';
+import { $, $$, isEmbedded } from './util.js';
 import { applyTheme } from './theme.js';
 import { setNavigator } from './router.js';
 import { initHoldButton } from './holdButton.js';
@@ -42,7 +42,9 @@ function show(name, params = {}) {
   const el = $(`#view-${name}`);
   VIEWS[name](el, params);
   if (changed && !params.day) window.scrollTo({ top: 0 });
-  if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
+  try {
+    if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
+  } catch { /* some embedded frames don't allow URL changes */ }
 }
 
 setNavigator(show);
@@ -109,7 +111,12 @@ document.addEventListener('visibilitychange', () => {
 
 // ---- Offline support (service worker) ----
 
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+// Skipped inside another page's frame (e.g. a claude.ai preview link), where service workers aren't allowed.
+if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !isEmbedded()) {
+  try { registerServiceWorker(); } catch (err) { console.warn('Offline support unavailable', err); }
+}
+
+function registerServiceWorker() {
   const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('./sw.js').then((reg) => {
     const promptUpdate = () => toast('A new version of Glow is ready ✨', {

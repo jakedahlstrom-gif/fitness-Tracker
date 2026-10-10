@@ -1,12 +1,12 @@
 /* ==========================================================================
    Glow Fitness: styles
-   Dark neon by default; light theme via [data-theme="light"].
+   Dark neon by default; light theme via [data-glow-theme="light"].
    ========================================================================== */
 
 /* ---- Design tokens ------------------------------------------------------ */
 
 :root,
-[data-theme="dark"] {
+[data-glow-theme="dark"] {
   --bg: #0B0D12;
   --card: #161A22;
   --card-2: #1D222C;          /* raised controls inside cards */
@@ -43,7 +43,7 @@
   color-scheme: dark;
 }
 
-[data-theme="light"] {
+[data-glow-theme="light"] {
   --bg: #F2F4F8;
   --card: #FFFFFF;
   --card-2: #F1F3F8;
@@ -170,7 +170,7 @@ body.ready .view:not([hidden]) { animation: view-in .28s var(--ease-out); }
   padding: 16px;
   position: relative;
 }
-[data-theme="light"] .card { box-shadow: 0 1px 2px rgba(12, 18, 32, .04), 0 4px 16px rgba(12, 18, 32, .04); }
+[data-glow-theme="light"] .card { box-shadow: 0 1px 2px rgba(12, 18, 32, .04), 0 4px 16px rgba(12, 18, 32, .04); }
 
 .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
 
@@ -386,7 +386,7 @@ button.tile:active { transform: scale(.97); border-color: var(--border-strong); 
 .btn-ghost { background: transparent; color: var(--text-2); }
 .btn-danger { background: #E5484D; color: #fff; }
 .btn-danger-text { color: #FF5C6C; }
-[data-theme="light"] .btn-danger-text { color: #D1242F; }
+[data-glow-theme="light"] .btn-danger-text { color: #D1242F; }
 .btn-small { min-height: 38px; padding: 0 14px; font-size: 14px; border-radius: 12px; }
 .btn-small .icon { width: 17px; height: 17px; }
 .btn-block { width: 100%; }
@@ -455,7 +455,7 @@ button.tile:active { transform: scale(.97); border-color: var(--border-strong); 
   color: var(--text);
   box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
 }
-[data-theme="light"] .seg.on { background: #fff; box-shadow: 0 1px 4px rgba(12, 18, 32, .12); }
+[data-glow-theme="light"] .seg.on { background: #fff; box-shadow: 0 1px 4px rgba(12, 18, 32, .12); }
 
 /* Switch */
 .switch {
@@ -594,7 +594,7 @@ textarea.input { resize: vertical; min-height: 64px; line-height: 1.4; }
   transition: transform .25s var(--spring), box-shadow .25s ease;
   animation: hold-breathe 3.2s ease-in-out infinite;
 }
-[data-theme="light"] .hold-core { box-shadow: 0 6px 18px rgb(236 20 104 / .35), 0 0 30px rgb(236 20 104 / .25), inset 0 2px 6px rgba(255, 255, 255, .35); }
+[data-glow-theme="light"] .hold-core { box-shadow: 0 6px 18px rgb(236 20 104 / .35), 0 0 30px rgb(236 20 104 / .25), inset 0 2px 6px rgba(255, 255, 255, .35); }
 @keyframes hold-breathe { 50% { box-shadow: 0 0 24px rgb(255 45 120 / .75), 0 0 60px rgb(255 45 120 / .4), inset 0 2px 6px rgba(255, 255, 255, .35), inset 0 -4px 10px rgba(120, 0, 40, .35); } }
 
 .hold-plus { display: grid; }
@@ -883,6 +883,11 @@ textarea.input { resize: vertical; min-height: 64px; line-height: 1.4; }
 .photo-sheet .sheet-body { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
 .photo-full { display: block; width: 100%; border-radius: 14px; }
 
+/* Copy/paste backup sheet (used where file downloads are blocked) */
+.backup-sheet { display: flex; flex-direction: column; gap: 12px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+.backup-sheet .field-label { margin: 10px 0 0; }
+.backup-text { min-height: 90px; font-size: 12px; font-family: ui-monospace, Menlo, monospace; }
+
 /* ---- Dialog ------------------------------------------------------------- */
 
 .dialog-layer { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; }
@@ -945,7 +950,7 @@ body.has-overlay .toast-root { bottom: calc(env(safe-area-inset-bottom) + 96px);
   padding: 0 14px;
   border-radius: 999px;
 }
-[data-theme="light"] .toast-action { color: #5AF0FA; }
+[data-glow-theme="light"] .toast-action { color: #5AF0FA; }
 
 /* ---- Confetti canvas ---------------------------------------------------- */
 

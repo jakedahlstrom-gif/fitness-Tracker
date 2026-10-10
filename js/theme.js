@@ -10,7 +10,7 @@ function resolved() {
 export function applyTheme(next = pref) {
   pref = next;
   const theme = resolved();
-  document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset.glowTheme = theme;
   // Match the browser/status bar to the background.
   const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg || '#0B0D12');

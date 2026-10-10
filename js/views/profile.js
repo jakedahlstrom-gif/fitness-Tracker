@@ -14,7 +14,7 @@ import { applyTheme } from '../theme.js';
 import { haptic, sound, unlockAudio } from '../effects.js';
 import { TYPE_COLORS } from '../store.js';
 
-export const APP_VERSION = '1.0.0 · Stage 1';
+export const APP_VERSION = '1.0.2 · Stage 1';
 
 let installPrompt = null; // Chrome/Android "beforeinstallprompt" event
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -93,9 +93,11 @@ export function renderProfile(el) {
 
     <article class="card">
       <div class="card-head"><span class="label">Backup</span><span class="label label-quiet">Last: ${esc(lastBackup)}</span></div>
-      <p class="muted small">One file with every workout, setting and photo. Save it to Files or iCloud Drive, or email it to yourself.</p>
+      <p class="muted small">${isEmbedded()
+        ? 'Export copies every workout, setting and photo as text. Paste it into a note or an email to yourself. To restore, tap Export and paste it back in.'
+        : 'One file with every workout, setting and photo. Save it to Files or iCloud Drive, or email it to yourself.'}</p>
       <div class="btn-row">
-        <button type="button" class="btn btn-secondary" data-action="export">${icon('download')} Export</button>
+        <button type="button" class="btn btn-secondary" data-action="export">${icon(isEmbedded() ? 'copy' : 'download')} Export</button>
         <button type="button" class="btn btn-secondary" data-action="import">${icon('upload')} Import</button>
       </div>
       <input type="file" accept="application/json,.json" hidden data-import>
@@ -129,7 +131,7 @@ function installCardHTML() {
       <article class="card install-card">
         <span class="type-badge lg c-cyan">${icon('phone')}</span>
         <div><b>Add to Home Screen</b>
-          <p class="muted small">In Safari, tap <span class="inline-icon">${icon('share')}</span> Share, then <b>Add to Home Screen</b>. It runs full-screen, works offline, and keeps your data safer.</p>
+          <p class="muted small">In Safari, tap <span class="inline-icon">${icon('share')}</span> Share (on newer iOS it's under <b>•••</b>), then <b>Add to Home Screen</b>. It runs full-screen, works offline, and keeps your data safer.</p>
         </div>
       </article>`;
   }

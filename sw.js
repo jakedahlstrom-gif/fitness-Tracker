@@ -3,7 +3,7 @@
 // When you deploy changes, bump CACHE_VERSION. Phones will download the new files
 // in the background and show an "Update" prompt the next time the app is opened.
 
-const CACHE_VERSION = 'glow-v1.0.1';
+const CACHE_VERSION = 'glow-v1.0.2';
 
 const APP_SHELL = [
   './',

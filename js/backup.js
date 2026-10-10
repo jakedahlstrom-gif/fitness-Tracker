@@ -61,7 +61,7 @@ export function parseBackup(text) {
     throw new Error("That isn't a valid backup (couldn't read the JSON).");
   }
   if (obj?.app !== APP_ID || !obj.data || !Array.isArray(obj.data.workouts)) {
-    throw new Error("That doesn't look like a Glow backup file.");
+    throw new Error("That doesn't look like a Glow backup.");
   }
   return obj;
 }

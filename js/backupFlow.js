@@ -9,6 +9,7 @@ import { toast } from './toast.js';
 import { applyTheme } from './theme.js';
 import { icon } from './icons.js';
 import { plural, isEmbedded } from './util.js';
+import { restoreText } from './rewardsFlow.js';
 
 /** Export a backup the best way this environment allows. */
 export async function startExport() {
@@ -37,7 +38,7 @@ export async function confirmAndRestore(backup) {
   if (!ok) return false;
   const { photosRestored } = await restoreBackup(backup);
   applyTheme(store.settings.theme);
-  toast(photosRestored ? `Restored ${plural(n, 'workout')} ✨` : `Restored ${plural(n, 'workout')} (photos skipped)`);
+  toast(photosRestored ? `${restoreText(n)} ✨` : `${restoreText(n)} (photos skipped)`);
   return true;
 }
 

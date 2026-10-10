@@ -1,4 +1,7 @@
-// Dark / light / auto theme handling.
+// Dark / light / auto theme handling. The equipped look (palette + button skin)
+// has a dark and a light set, so it's re-applied whenever the mode changes.
+
+import { applyLook, currentLook } from './looks.js';
 
 const media = window.matchMedia?.('(prefers-color-scheme: light)');
 let pref = 'dark';
@@ -11,9 +14,12 @@ export function applyTheme(next = pref) {
   pref = next;
   const theme = resolved();
   document.documentElement.dataset.glowTheme = theme;
-  // Match the browser/status bar to the background.
-  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg || '#0B0D12');
+  paintLook(theme);
+}
+
+/** Re-apply the current look for the current mode (also sets the browser bar color). */
+export function paintLook(theme = resolved()) {
+  applyLook(currentLook(), theme);
 }
 
 // Follow the system setting live when "Auto" is chosen.

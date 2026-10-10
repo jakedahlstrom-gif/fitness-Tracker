@@ -1326,3 +1326,32 @@ button.record-row:active { background: var(--card-2); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* ---- Badge art (js/badgeArt.js) ---------------------------------------- */
+
+.badge-art { display: block; overflow: visible; flex: none; }
+.badge-art .ba-face { fill: color-mix(in srgb, var(--b1) 20%, #10131A); }
+[data-glow-theme="light"] .badge-art .ba-face { fill: color-mix(in srgb, var(--b1) 12%, #FFFFFF); }
+.badge-art.s-earned.r-common { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--b1) 45%, transparent)); }
+.badge-art.s-earned.r-rare { filter: drop-shadow(0 0 12px color-mix(in srgb, var(--b1) 55%, transparent)); }
+.badge-art.s-earned.r-epic { filter: drop-shadow(0 0 16px color-mix(in srgb, var(--b1) 65%, transparent)); }
+.badge-art.s-earned.r-legendary {
+  filter: drop-shadow(0 0 22px color-mix(in srgb, var(--b1) 55%, transparent));
+  animation: ba-pulse 2.8s ease-in-out infinite;
+}
+[data-glow-theme="light"] .badge-art.s-earned { filter: drop-shadow(0 2px 6px color-mix(in srgb, var(--b1) 35%, transparent)); }
+.badge-art .ba-holo { transform-box: fill-box; transform-origin: center; animation: ba-spin 6s linear infinite; }
+.badge-art .ba-sparkle { transform-box: fill-box; transform-origin: center; transform: scale(0); animation: ba-sparkle 2.4s ease-in-out infinite; }
+.badge-art.almost .ba-rim { animation: ba-almost 2.4s ease-in-out infinite; }
+/* Small badges skip the glow filter: dozens of drop-shadows are slow on phones. */
+.badge-art.no-glow { filter: none !important; animation: none; }
+
+@keyframes ba-pulse {
+  50% { filter: drop-shadow(0 0 22px color-mix(in srgb, var(--b1) 85%, transparent)); }
+}
+@keyframes ba-spin { to { transform: rotate(360deg); } }
+@keyframes ba-sparkle { 0%, 100% { transform: scale(0); } 30% { transform: scale(1); } 60% { transform: scale(0); } }
+@keyframes ba-almost {
+  0%, 100% { stroke: color-mix(in srgb, var(--b1) 25%, transparent); }
+  50% { stroke: color-mix(in srgb, var(--b1) 60%, transparent); }
+}

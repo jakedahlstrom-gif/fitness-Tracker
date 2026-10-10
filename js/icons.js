@@ -35,6 +35,11 @@ const PATHS = {
   vibrate: '<rect x="8" y="4" width="8" height="16" rx="1.5"/><path d="M4.5 8v8M19.5 8v8M2 10v4M22 10v4"/>',
   user: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c.7-3.3 3.5-5.5 7-5.5s6.3 2.2 7 5.5"/>',
   ruler: '<path d="M3.5 15.5 15.5 3.5l5 5-12 12z"/><path d="M7.5 11.5 9.5 13.5M10.5 8.5l2 2M13.5 5.5l2 2"/>',
+  lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
+  gift: '<rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5v8h14v-8M12 8.5v12"/><path d="M12 8.5c-1.5-3.5-5.5-4-5.5-1.5 0 1.5 2.5 1.5 5.5 1.5zM12 8.5c1.5-3.5 5.5-4 5.5-1.5 0 1.5-2.5 1.5-5.5 1.5z"/>',
+  medal: '<path d="M8 3h8l-2.5 6h-3z"/><circle cx="12" cy="15" r="5.5"/>',
+  palette: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.9 1.5-1.9-.3-1.1.4-2.1 1.6-2.1h2a3.4 3.4 0 0 0 3.4-3.6A8.6 8.6 0 0 0 12 3.5z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7.3" r="1.2"/><circle cx="15" cy="7.8" r="1.2"/>',
+  crown: '<path d="M4 18.5h16M4.5 16 3 7.5l5 3.5 4-6 4 6 5-3.5-1.5 8.5z"/>',
 
   // Workout types
   bike: '<circle cx="5.5" cy="16" r="3.5"/><circle cx="18.5" cy="16" r="3.5"/><path d="M5.5 16 9 9.5l3 6.5H5.5M9 9.5h6.5L12 16M15.5 9.5l3 6.5M9 9.5 8.3 7M6.8 7h3M15.5 9.5l-.7-3h2.4"/>',
@@ -57,4 +62,41 @@ export const TYPE_ICONS = ['bike', 'run', 'walk', 'dumbbell', 'yoga', 'bolt', 's
 /** Returns an inline <svg> string. */
 export function icon(name, className = '') {
   return `<svg class="icon ${className}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${PATHS[name] || PATHS.star}</svg>`;
+}
+
+/** The raw SVG markup of an icon (for building self-contained SVG images). */
+export const iconMarkup = (name) => PATHS[name] || PATHS.star;
+
+const ATTR = (el, name) => parseFloat(el.match(new RegExp(`\\b${name}="([^"]*)"`))?.[1] ?? '0');
+
+/**
+ * The icon as a Path2D in its 24×24 box, for drawing on a canvas with stroke().
+ * Handles the shapes this icon set uses: path, circle, ellipse and rect (with rx).
+ */
+export function iconPath2D(name) {
+  const p = new Path2D();
+  for (const el of iconMarkup(name).match(/<(path|circle|ellipse|rect)\b[^>]*>/g) || []) {
+    if (el.startsWith('<path')) {
+      const d = el.match(/\bd="([^"]*)"/)?.[1];
+      if (d) p.addPath(new Path2D(d));
+    } else if (el.startsWith('<circle')) {
+      const cx = ATTR(el, 'cx'), cy = ATTR(el, 'cy'), r = ATTR(el, 'r');
+      p.moveTo(cx + r, cy);
+      p.arc(cx, cy, r, 0, Math.PI * 2);
+    } else if (el.startsWith('<ellipse')) {
+      const cx = ATTR(el, 'cx'), cy = ATTR(el, 'cy'), rx = ATTR(el, 'rx'), ry = ATTR(el, 'ry');
+      p.moveTo(cx + rx, cy);
+      p.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+    } else {
+      const x = ATTR(el, 'x'), y = ATTR(el, 'y'), w = ATTR(el, 'width'), h = ATTR(el, 'height');
+      const r = Math.min(ATTR(el, 'rx'), w / 2, h / 2);
+      p.moveTo(x + r, y);
+      p.arcTo(x + w, y, x + w, y + h, r);
+      p.arcTo(x + w, y + h, x, y + h, r);
+      p.arcTo(x, y + h, x, y, r);
+      p.arcTo(x, y, x + w, y, r);
+      p.closePath();
+    }
+  }
+  return p;
 }

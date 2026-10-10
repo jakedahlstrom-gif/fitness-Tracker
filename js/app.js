@@ -13,6 +13,8 @@ import { renderHome, resetHomeWeek } from './views/home.js';
 import { renderHistory } from './views/history.js';
 import { renderGoals } from './views/goals.js';
 import { renderProfile } from './views/profile.js';
+import { syncLook, initRewardsFlow } from './rewardsFlow.js';
+import { dismissBanner } from './celebrate.js';
 
 const VIEWS = {
   home: renderHome,
@@ -72,13 +74,16 @@ store.subscribe((reason) => {
 store.onError((err) => {
   console.error(err);
   const full = err?.name === 'QuotaExceededError' || /quota/i.test(err?.message || '');
-  toast(full ? 'Storage is full. Export a backup from Profile.' : "Couldn't save. Try again.", { duration: 6000 });
+  toast(full ? 'Storage is full. Export a backup from Profile.' : "Couldn't save. Try again.", { duration: 6000, urgent: true });
 });
 
 // ---- Hold to log ----
 
 const holdBtn = $('#hold-btn');
 holdBtn.querySelector('.hold-plus').innerHTML = icon('plus');
+
+// Starting a new hold clears a celebration banner out of the way.
+holdBtn.addEventListener('pointerdown', dismissBanner);
 
 initHoldButton(holdBtn, {
   duration: 1500,
@@ -100,6 +105,7 @@ initHoldButton(holdBtn, {
 // ---- Theme ----
 
 applyTheme(store.settings.theme);
+syncLook({ force: true });
 
 // ---- Midnight rollover: refresh "today" if the app stays open past midnight ----
 
@@ -149,3 +155,7 @@ function registerServiceWorker() {
 
 show(location.hash.slice(1) || 'home');
 document.body.classList.add('ready');
+initRewardsFlow();
+
+// The Home gift pill waits for celebrations to finish, so refresh when one ends.
+document.addEventListener('glow:celebration-end', () => { if (current === 'home') show('home'); });

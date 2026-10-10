@@ -13,8 +13,10 @@ import { toast } from '../toast.js';
 import { applyTheme } from '../theme.js';
 import { haptic, sound, unlockAudio } from '../effects.js';
 import { TYPE_COLORS } from '../store.js';
+import { trophyCardHTML, bindTrophyCard } from './trophies.js';
+import { studioCardHTML, bindStudioCard } from '../studio.js';
 
-export const APP_VERSION = '1.1.1 · Stage 2';
+export const APP_VERSION = '1.2.0 · Stage 3';
 
 let installPrompt = null; // Chrome/Android "beforeinstallprompt" event
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -49,6 +51,9 @@ export function renderProfile(el) {
         <div><b class="c-cyan">${fmtNum(store.derived().records.weeklyStreak.value)}<small>wk</small></b><span>Best streak</span></div>
       </div>
     </article>
+
+    ${trophyCardHTML()}
+    ${studioCardHTML()}
 
     ${installCardHTML()}
 
@@ -86,6 +91,12 @@ export function renderProfile(el) {
         ${toggle('haptics', s.haptics, 'Haptics')}
       </div>
 
+      <div class="set-row">
+        <span class="set-label">${icon('sparkle')} Celebrations</span>
+        ${segmented('celebrations', [['full', 'Full'], ['calm', 'Calm']], s.celebrations, { ariaLabel: 'Celebrations' })}
+      </div>
+      <p class="muted small set-note">Calm skips fireworks and halves confetti.</p>
+
       <button type="button" class="set-row set-link" data-action="types">
         <span class="set-label">${icon('dumbbell')} Workout types</span>
         <span class="muted">${store.types().length} ${icon('chevronRight')}</span>
@@ -110,9 +121,11 @@ export function renderProfile(el) {
       <button type="button" class="btn btn-ghost btn-danger-text btn-block" data-action="erase">${icon('trash')} Erase all data</button>
     </article>
 
-    <p class="app-version">Glow Fitness ${APP_VERSION}<br>Made with 💗 for ${esc(s.name || 'you')}</p>
+    <p class="app-version" data-action="version">Glow Fitness ${APP_VERSION}<br>Made with 💗 for ${esc(s.name || 'you')}</p>
   `;
 
+  bindTrophyCard(el);
+  bindStudioCard(el);
   fillStorageInfo(el, sum.count);
   if (!el.dataset.bound) bindProfile(el);
 }
@@ -146,6 +159,8 @@ async function fillStorageInfo(el, count) {
   try { n = await photos.count(); } catch { /* ignore */ }
   out.textContent = `${plural(count, 'workout')} and ${plural(n, 'photo')} stored on this device.`;
 }
+
+let versionTaps = [];
 
 function bindProfile(el) {
   el.dataset.bound = '1';
@@ -183,6 +198,19 @@ function bindProfile(el) {
         store.updateSettings({ haptics: !s.haptics });
         haptic('success');
         break;
+      case 'celebrations':
+        store.updateSettings({ celebrations: btn.dataset.value === 'calm' ? 'calm' : 'full' });
+        break;
+      case 'version': {
+        // Five quick taps open the Celebration lab (for trying every celebration).
+        const now = Date.now();
+        versionTaps = versionTaps.filter((t) => now - t < 2000).concat(now);
+        if (versionTaps.length >= 5) {
+          versionTaps = [];
+          import('../lab.js').then((m) => m.openLab()).catch((err) => console.error(err));
+        }
+        break;
+      }
       case 'types':
         openTypesEditor();
         break;

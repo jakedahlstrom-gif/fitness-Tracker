@@ -17,6 +17,8 @@ import { openLogSheet } from '../logSheet.js';
 import { navigate } from '../router.js';
 import { toast } from '../toast.js';
 import { haptic } from '../effects.js';
+import { rewardsCardHTML, bindRewardsCard } from '../studio.js';
+import { openShare } from '../celebrate.js';
 
 const RINGS = [
   { key: 'workouts', label: 'Workouts per week', color: 'pink', step: 1, unit: '' },
@@ -110,6 +112,7 @@ export function renderGoals(el, params = {}) {
       <button type="button" class="btn btn-small btn-ghost add-goal" data-action="new-goal" data-tier="long">${icon('plus')} Add long-term goal</button>
     </article>
 
+    ${rewardsCardHTML()}
     ${streaksCardHTML(d)}
     ${recordsCardHTML(d)}
 
@@ -121,6 +124,7 @@ export function renderGoals(el, params = {}) {
   `;
 
   if (!el.dataset.bound) bindGoals(el);
+  bindRewardsCard(el);
 
   const target = params.goal ? el.querySelector(`#goal-${CSS.escape(params.goal)}`)
     : params.section ? el.querySelector(`#${CSS.escape(params.section)}`) : null;
@@ -380,10 +384,22 @@ export function openGoalSheet({ mode = 'new', goal = null, preset = null } = {})
     return list;
   }
 
+  // A goal already crushed this period (or a met long-term goal) can be shared from here.
+  const crushed = goal ? store.progressFor(goal) : null;
+  const crushedHTML = crushed?.met ? `
+    <div class="crushed-banner">
+      <span class="cb-check">${icon('check')}</span>
+      <span>Crushed ${esc(parseKey(crushed.achievedOn).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }))}</span>
+      <button type="button" class="btn btn-small btn-secondary" data-share-goal>${icon('share')} Share card</button>
+    </div>` : '';
+  host.addEventListener('click', (e) => {
+    if (e.target.closest('[data-share-goal]')) openShare({ kind: 'goal', goalId: goal.id });
+  });
+
   function draw() {
     const shownTarget = isDist(draft.metric) ? Math.round(kmToUnit(draft.target, units) * 100) / 100 : draft.target;
     const unit = isDist(draft.metric) ? units : goalUnit(draft.metric, draft.target);
-    host.innerHTML = `
+    host.innerHTML = `${crushedHTML}
       ${mode === 'new' ? `
       <section class="field">
         <div class="field-label">Ideas</div>
@@ -646,6 +662,7 @@ function openArchivedSheet() {
             <span class="goal-name">${esc(goalLabel(g))}</span>
             <span class="muted small">${esc(statusLine(p))}</span>
           </span>
+          ${g.tier === 'long' && p.met ? `<button type="button" class="icon-btn" data-action="share" aria-label="Share">${icon('share')}</button>` : ''}
           <button type="button" class="btn btn-small btn-secondary" data-action="restore">Restore</button>
           <button type="button" class="icon-btn" data-action="delete" aria-label="Delete forever">${icon('trash')}</button>
         </div>`;
@@ -657,6 +674,10 @@ function openArchivedSheet() {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     const id = btn.closest('[data-id]').dataset.id;
+    if (btn.dataset.action === 'share') {
+      openShare({ kind: 'goal', goalId: id });
+      return;
+    }
     if (btn.dataset.action === 'restore') {
       store.unarchiveGoal(id);
       toast('Goal restored');

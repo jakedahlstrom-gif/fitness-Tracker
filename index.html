@@ -19,16 +19,31 @@
   <meta name="apple-mobile-web-app-title" content="Glow">
 
   <script>
-    // Apply the saved theme before first paint so there's no light/dark flash.
+    // Apply the saved theme and look (palette + button skin) before first paint, so nothing flashes.
     (function () {
+      var d = document.documentElement;
       try {
         var t = localStorage.getItem('glow-fitness:theme') || 'dark';
         if (t === 'auto') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-glow-theme', t);
+        d.setAttribute('data-glow-theme', t);
+        var L = JSON.parse(localStorage.getItem('glow-fitness:look') || 'null');
+        if (L && typeof L === 'object') {
+          var re = /^[a-z0-9-]{1,32}$/;
+          if (re.test(L.palette)) d.setAttribute('data-glow-palette', L.palette);
+          if (re.test(L.skin)) d.setAttribute('data-glow-skin', L.skin);
+          var v = L[t];
+          if (v) for (var k in v) {
+            if (/^--[a-z0-9-]+$/.test(k) && /^(#[0-9a-fA-F]{6}|[0-9.]+)$/.test(v[k])) d.style.setProperty(k, v[k]);
+          }
+        }
       } catch (e) { /* storage blocked: stay dark */ }
     })();
   </script>
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/celebrate.css">
+  <link rel="stylesheet" href="css/looks.css">
+  <link rel="stylesheet" href="css/trophies.css">
+  <link rel="stylesheet" href="css/share.css">
   <script type="module" src="js/app.js"></script>
 </head>
 <body>
@@ -39,6 +54,11 @@
         <feGaussianBlur stdDeviation="2.2" result="blur"/>
         <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
       </filter>
+      <!-- Ring stroke for the Disco, Holo and Galaxy button skins -->
+      <linearGradient id="rainbow-stroke" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#FF5CC8"/><stop offset=".33" stop-color="#5CF2FF"/>
+        <stop offset=".66" stop-color="#C6FF8A"/><stop offset="1" stop-color="#B98CFF"/>
+      </linearGradient>
     </defs>
   </svg>
 
@@ -69,6 +89,7 @@
     <div class="hold-hint" id="hold-hint" aria-live="polite">Keep holding 💪</div>
   </nav>
 
+  <div class="celebrate-root" id="celebrate-root"></div>
   <canvas class="fx-canvas" id="fx-canvas" aria-hidden="true"></canvas>
   <div class="toast-root" id="toast-root"></div>
 

@@ -8,7 +8,7 @@ Plain HTML, CSS and JavaScript (ES modules), with no build step and no dependenc
 
 - [x] **Stage 1: Core logging.** Hold-to-log button with ring fill, haptics, sound and confetti; quick details sheet (type, duration, distance, intensity, feel 1–5, mood, note, photo, date); weekly strip; editable history; weekly ring targets; settings; JSON backup.
 - [x] **Stage 2: Goals and motivation.** Weekly / monthly / long-term goals with progress bars (create, edit, archive); weekly rings that pop when they close; weekly streak with freezes and a daily streak with rest days; five personal records flagged the moment you set them.
-- [ ] **Stage 3: Celebrations and rewards.** Tiered celebrations, badges, unlockable themes, share card.
+- [x] **Stage 3: Celebrations and rewards.** Celebrations sized to the win (a pop, confetti cannons, or full-screen fireworks), 50 badges in a Trophy Case, unlockable themes and hold-button styles in the Glow Studio, and a "Goal crushed!" share card.
 - [ ] **Stage 4: Insights.** Heatmap, trends (Chart.js), year in review.
 - [ ] **Stage 5: Extras.** Reminders, challenges, couple mode.
 
@@ -33,9 +33,9 @@ There is also a private preview at https://claude.ai/artifact/DaKy8VYDtCdFhwaTtd
 ### Shipping an update
 
 1. Make your changes.
-2. In `sw.js`, bump `CACHE_VERSION` (e.g. `glow-v1.1.1` → `glow-v1.1.2`), and update `APP_VERSION` in `js/views/profile.js` to match. If you added a new file, add it to `APP_SHELL` too.
+2. In `sw.js`, bump `CACHE_VERSION` (e.g. `glow-v1.2.0` → `glow-v1.2.1`), and update `APP_VERSION` in `js/views/profile.js` to match. If you added a new file, add it to `APP_SHELL` too.
 3. Push to `claude/stage-1-core-logging`, the branch Pages deploys from (or to `main` once Pages uses `main`). The next time the app is opened, it downloads the new version in the background and shows **"A new version of Glow is ready ✨"** with an **Update** button.
-4. The claude.ai preview is a separate copy, so pushing doesn't change it. Ask Claude to republish it to the same link. Its page is built from `index.html` and published with `css/` and `js/`.
+4. The claude.ai preview is a separate copy, so pushing doesn't change it. Ask Claude to republish it to the same link. Its page is built from `index.html` and published with every file in `css/` and `js/`.
 
 If you skip step 2, installed copies keep running the old cached files.
 
@@ -47,6 +47,17 @@ If you skip step 2, installed copies keep running the old cached files.
 - **Personal records:** longest workout, most minutes in a week and in a month, longest daily and weekly streak. A save that beats one shows **New PR!** (after a little history, so the first workouts don't all count as records).
 
 None of these numbers are stored. `js/progress.js` computes them from the workouts, goals, rest days and target history every time, so editing or deleting a workout, Undo and restoring a backup always give the right answer.
+
+## How badges and unlocks work
+
+- **Earned once, kept forever.** Wins (weeks, goals, PRs, freezes) and badges go into a ledger (`awards` in the data) the moment they happen, with the date they happened. Deleting or editing a workout later never takes one away. Only **Erase all** or restoring a backup replaces the ledger.
+- **Weekly win:** a week where she hit her weekly workouts target, or crushed a weekly goal. Each calendar week counts once, even if she changes the week start. **Monthly win:** a month with a crushed monthly goal. **Long-term win:** a crushed long-term goal.
+- **Unlocks come from wins:** 1/3/6/10 weekly wins, 1/2/4 monthly wins and 1/2 long-term wins unlock the themes and button styles (see the Rewards card on Goals). They're worked out from the ledger, never stored separately. **Never raise an unlock threshold in a later version**: that would lock things she already has.
+- **No farming:** lowering a goal's target (or creating one that's already met) doesn't count as crushing it. A goal only counts if it wasn't already met by the workouts that existed when it was last edited. Workouts logged afterwards do count, including a backdated one that finishes last week's or last month's goal.
+- **First launch of Stage 3:** her whole history is scanned once, and she gets a one-time "your Trophy Case is ready" gift with everything she already earned.
+- **Celebration lab:** tap the version line at the bottom of Profile five times to replay every celebration and share card with sample data. Nothing there is saved.
+- **Calm mode** (Profile → Celebrations) skips fireworks and halves the confetti. The phone's **Reduce Motion** setting turns off the particle effects and keeps simple fades.
+- **Share card:** a 1080×1350 post (or 1920 tall story) image drawn on a canvas. On her phone it opens the share sheet. In the claude.ai preview, sharing and downloads are blocked by the frame, so press and hold the image to save it (or use Copy image).
 
 ## Tests
 
@@ -72,7 +83,7 @@ Everything stays on her phone. There are no accounts and no servers.
 
 | What | Where |
 |---|---|
-| Workouts, goals, rest days, settings | `localStorage` (key `glow-fitness:data`) |
+| Workouts, goals, rest days, settings, wins and badges | `localStorage` (key `glow-fitness:data`) |
 | Photos (compressed JPEGs, ~100 KB each) | IndexedDB, because `localStorage` only holds ~5 MB, about 50 photos |
 
 **Backups:** Profile → Backup → **Export** saves one `.json` file with every workout, setting and photo. On a phone it opens the share sheet, so you can **Save to Files**, AirDrop or email it. **Import** restores a file and replaces what's on the device. (In the claude.ai preview, Export copies the backup as text instead; see above.) After 5 workouts, Home shows a gentle reminder if there's been no backup in 30 days.
@@ -85,13 +96,26 @@ Everything stays on her phone. There are no accounts and no servers.
 index.html              App shell: views, tab bar, hold button
 manifest.webmanifest    PWA name, colors, icons
 sw.js                   Offline cache + update flow
-css/styles.css          All styles; dark/light theme tokens at the top
+css/styles.css          Core styles; dark/light theme tokens at the top
+css/celebrate.css       Celebration overlays (pill, banner, finale, reveal, intro)
+css/looks.css           Button skins, Glow Studio, Rewards card, palette ambience
+css/trophies.css        Trophy Case and badge detail
+css/share.css           Share sheet
 icons/                  App icons (PNG + SVG)
 js/
   app.js                Entry point: tabs, hold-to-log wiring, service worker
   store.js              localStorage persistence, change events, cached derived numbers
   schema.js             Data shape, defaults and migration from older versions
   progress.js           Streaks, freezes, rest days, goal progress, records (pure, unit-tested)
+  rewards.js            Wins ledger, badge rules, unlocks, celebration plans (pure, unit-tested)
+  badges.js, looks.js   Badge catalog; palettes, button skins and unlock ladders (data)
+  rewardsFlow.js        First-launch backfill, quiet catch-up passes, applying the equipped look
+  celebrate.js          The celebration director (pop, cannons, finale, badge reveal, intro)
+  fireworks.js          Canvas fireworks engine
+  badgeArt.js           Badge artwork (SVG)
+  shareCard.js          "Goal crushed!" share image + share sheet
+  studio.js, lookParts.js  Glow Studio, Rewards card, mini hold buttons
+  lab.js                Celebration lab (5 taps on the version line)
   photos.js             IndexedDB photo storage + image compression
   backup.js             Build, save, parse and restore a JSON backup
   backupFlow.js         Export/restore flows; copy/paste when running in a frame
@@ -99,18 +123,18 @@ js/
   router.js, util.js    Tab navigation; shared helpers (incl. isEmbedded)
   holdButton.js         Press-and-hold interaction
   logSheet.js           Workout details sheet (log / edit / delete)
-  effects.js            Haptics, Web Audio sounds, confetti
+  effects.js            Haptics, Web Audio sounds (one compressed bus), confetti shapes
   sheet.js, toast.js    Bottom sheets, dialogs, toasts
   components.js         Rings, badges, segmented controls, switches
   stats.js, dates.js    Week/month math, streaks, date formatting
   icons.js              Inline SVG icon set
-  views/                Home, History, Goals, Profile screens
-tests/                  Unit tests for progress.js and schema.js (npm test)
+  views/                Home, History, Goals, Profile screens; trophies.js (Trophy Case)
+tests/                  Unit tests for progress.js, rewards.js and schema.js (npm test)
 package.json            Only for `npm test`; the app itself has no build step
 ```
 
 ## Notes
 
 - **Haptics:** Android vibrates via `navigator.vibrate`. iPhone Safari has no vibration API; on iOS 18+ the app uses a system "switch" tick as a best-effort substitute, which may not fire every time.
-- **Sounds** are synthesized with the Web Audio API (no audio files). They respect the iPhone's silent switch and can be turned off in Profile.
-- Respects **Reduce Motion**: animations shorten and confetti is toned down.
+- **Sounds** are synthesized with the Web Audio API (no audio files). They respect the iPhone's silent switch, mix with her music instead of pausing it, and can be turned off in Profile.
+- Respects **Reduce Motion**: animations shorten, celebration particles are skipped and overlays simply fade.

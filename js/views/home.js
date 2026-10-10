@@ -18,6 +18,7 @@ import { startExport } from '../backupFlow.js';
 import { openSheet } from '../sheet.js';
 import { toast } from '../toast.js';
 import { haptic } from '../effects.js';
+import { isCelebrating, revealUnseen } from '../celebrate.js';
 
 let weekOffset = 0; // 0 = this week, -1 = last week, …
 let lastProgress = null; // previous ring ratios, so rings animate from where they were and "pop" when they close
@@ -168,6 +169,7 @@ export function renderHome(el) {
       <div class="brand">GLOW<i>//</i>FIT</div>
       <h1 class="greeting">${greeting(now)}, ${esc(s.name || 'friend')}</h1>
       <p class="subtle">${esc(fmtLongDate(now))}</p>
+      ${giftPillHTML()}
     </header>
 
     ${backupNudgeHTML(workouts.length)}
@@ -405,12 +407,26 @@ function bindHome(el) {
       case 'backup-now':
         startExport();
         break;
+      case 'open-gift':
+        revealUnseen();
+        break;
       case 'backup-snooze':
         store.updateMeta({ backupNudgeSnoozedUntil: new Date(Date.now() + 14 * 86400000).toISOString() });
         break;
       default:
     }
   });
+}
+
+/** "2 new badges waiting · tap to open": rewards earned quietly that she hasn't seen yet. */
+function giftPillHTML() {
+  if (store.awards.introPending || isCelebrating()) return '';
+  const { badges, unlocks } = store.rewards().unseen;
+  if (!badges.length && !unlocks.length) return '';
+  const what = badges.length
+    ? `${plural(badges.length, 'new badge')}${unlocks.length ? ` + ${plural(unlocks.length, 'look')}` : ''}`
+    : `${plural(unlocks.length, 'new look')}`;
+  return `<button type="button" class="gift-pill" data-action="open-gift">${icon('gift')}<span>${esc(what)} waiting · tap to open</span></button>`;
 }
 
 /** Jump the strip back to the current week (e.g. when Home is re-opened). */

@@ -16,6 +16,7 @@ import { toast } from './toast.js';
 import { goalLabel, goalNum, goalUnit, segmented, toggle } from './components.js';
 import { buildCtx, goalProgress, nextMonthStart, weekKeyOf, chrono } from './progress.js';
 import { fnv1a } from './rewards.js';
+import { heatRamp } from './insights.js';
 import { parseKey, addDaysKey, daysBetween, todayKey, fmtWeekRange } from './dates.js';
 import { esc, fmtNum, plural, fmtDistance, isEmbedded, isTouchDevice, prefersReducedMotion } from './util.js';
 
@@ -94,6 +95,7 @@ function resolveCard(spec) {
     if (spec.kind === 'goal') return goalCard(spec);
     if (spec.kind === 'badge') return badgeCard(spec);
     if (spec.kind === 'pr') return prCard(spec);
+    if (spec.kind === 'recap') return recapCard(spec);
   } catch (err) {
     console.warn('share card', err);
   }
@@ -387,6 +389,59 @@ function prCard(spec) {
     fileName: `glow-pr-${on}.png`,
     shareTitle: 'New PR!',
     alt: `New PR! ${subtitle}. ${prev > 0 ? `Previous best ${recordText(rec, prev)}.` : ''}`.trim(),
+  };
+}
+
+/**
+ * "My year in Glow": a giant year over a GitHub-style year strip. `snapshot` is a
+ * yearRecap() model (the lab's sample); otherwise store.recap(year).
+ */
+function recapCard(spec) {
+  const Y = String(spec.year || spec.snapshot?.year || '');
+  const r = spec.snapshot || (typeof store.recap === 'function' && /^\d{4}$/.test(Y) ? store.recap(Y) : null);
+  if (!r || !r.totals?.n) return null;
+  const { n, min, active, types } = r.totals;
+  const weeks = r.streaks?.weekly?.value || 0;
+  const days = r.streaks?.daily?.value || 0;
+  const badgeCount = (r.badges || []).length;
+  const goalsWon = r.goals?.total ?? ((r.goals?.weekly || 0) + (r.goals?.monthly || 0) + (r.goals?.long?.length || 0));
+  const top = r.topTypes?.[0] ? store.typeById(r.topTypes[0].typeId).label : null;
+  const time = min < 60 ? plural(min, 'minute') : `${hoursText(min)} ${min === 60 ? 'hour' : 'hours'}`;
+  const candidates = [
+    weeks >= 2 && { value: fmtNum(weeks), unit: '', label: 'WK STREAK', spoken: `${weeks}-week streak` },
+    days >= 2 && { value: fmtNum(days), unit: '', label: 'DAY STREAK', spoken: `${days}-day streak` },
+    badgeCount >= 1 && { value: fmtNum(badgeCount), unit: '', label: badgeCount === 1 ? 'BADGE' : 'BADGES', spoken: plural(badgeCount, 'badge') },
+    goalsWon >= 1 && { value: fmtNum(goalsWon), unit: '', label: 'GOALS WON', spoken: `${plural(goalsWon, 'goal')} won` },
+    { value: fmtNum(active), unit: '', label: active === 1 ? 'ACTIVE DAY' : 'ACTIVE DAYS', spoken: plural(active, 'active day') },
+    { value: fmtNum(types), unit: '', label: types === 1 ? 'TYPE' : 'TYPES', spoken: plural(types, 'workout type') },
+  ].filter(Boolean);
+  const tiles = candidates.slice(0, 3).map((t, i) => ({ ...t, color: ['A', 'C', 'B'][i] }));
+  const strip = spec.snapshot
+    ? (r.badges || []).map((b) => BADGE_BY_ID.get(b.id || b)).filter(Boolean)
+    : earnedBadges((id, b) => b.on.startsWith(Y));
+  const firstEver = spec.snapshot ? (r.since || r.first?.date) : pastWorkouts().reduce((a, w) => (w.date < a ? w.date : a), r.first?.date || todayKey());
+  const context = `Top: ${top || 'Workout'}${weeks >= 2 ? ` · Longest streak: ${plural(weeks, 'week')}` : ''}`;
+  const title = n === 1 ? '1 WORKOUT' : `${fmtNum(n)} WORKOUTS`;
+  const subtitle = `${time} · ${plural(active, 'active day')}`;
+  return {
+    kind: 'recap',
+    seed: `recap:${Y}`,
+    on: r.through || `${Y}-12-31`,
+    headerText: r.soFar ? `${Y} · SO FAR` : Y,
+    kicker: r.since ? 'MY FIRST CHAPTER' : r.soFar ? 'MY YEAR SO FAR' : 'MY YEAR IN GLOW',
+    kickerColor: 'A',
+    title,
+    subtitle,
+    context,
+    tiles,
+    hero: { type: 'year', year: Y, strip: r.strip },
+    strip,
+    footer: `Glowing since ${parseKey(firstEver || `${Y}-01-01`).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`,
+    photoIds: [],
+    fileName: `glow-year-${Y}.png`,
+    shareTitle: `My ${Y} in Glow`,
+    sheetTitle: 'Share your year',
+    alt: `My ${Y} in Glow: ${title.toLowerCase()}, ${subtitle}. ${context}. ${tiles.map((t) => t.spoken).join(', ')}.`,
   };
 }
 
@@ -704,7 +759,54 @@ function drawPhoto(ctx, img, cx, cy, r) {
   ctx.stroke();
 }
 
+/** The recap hero: a giant gradient year over the GitHub-style year strip. */
+function drawYearHero(ctx, P, m, dy) {
+  radialGlow(ctx, 540, 400 + dy, 320, P.A, 0.22);
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'center';
+  setFont(ctx, 'italic 900 230px');
+  const tw = ctx.measureText(m.hero.year).width;
+  const g = ctx.createLinearGradient(540 - tw / 2, 0, 540 + tw / 2, 0);
+  g.addColorStop(0, P.A);
+  g.addColorStop(0.5, P.C);
+  g.addColorStop(1, P.B);
+  ctx.fillStyle = g;
+  shadow(ctx, rgba(P.A, 0.7), 40);
+  ctx.fillText(m.hero.year, 540, 420 + dy);
+  shadow(ctx);
+  ctx.fillText(m.hero.year, 540, 420 + dy);
+
+  const cols = m.hero.strip?.cols || [];
+  if (!cols.length) { ctx.textAlign = 'left'; return; }
+  const ramp = heatRamp(P.A, P.card, P.card2, 'dark');
+  const pitch = 17;
+  const cell = 14;
+  const x0 = 540 - (cols.length * pitch - (pitch - cell)) / 2;
+  const top = 470 + dy;
+  setFont(ctx, '700 20px');
+  ctx.fillStyle = TEXT3;
+  cols.forEach((col, i) => { if (col.mark) ctx.fillText(col.mark, x0 + i * pitch + cell / 2, 456 + dy); });
+  ctx.textAlign = 'left';
+  cols.forEach((col, i) => col.levels.forEach((lv, j) => {
+    if (lv === -1) return;
+    const x = x0 + i * pitch;
+    const y = top + j * pitch;
+    roundRect(ctx, x, y, cell, cell, 3);
+    if (lv === -2) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      return;
+    }
+    ctx.fillStyle = ramp[Math.max(0, Math.min(4, lv))];
+    if (lv === 4) shadow(ctx, rgba(P.A, 0.8), 10);
+    ctx.fill();
+    shadow(ctx);
+  }));
+}
+
 function drawHero(ctx, P, m, assets, dy, rnd, keepOut) {
+  if (m.hero.type === 'year') { drawYearHero(ctx, P, m, dy); return; }
   const badge = m.hero.type === 'badge';
   const cx = 540;
   const cy = (badge ? 440 : 450) + dy;
@@ -744,7 +846,7 @@ function headerSpans(ctx, m) {
   setFont(ctx, '800 30px');
   const brand = spacedWidth(ctx, 'GLOW//FIT', 8);
   setFont(ctx, '700 26px');
-  const date = spacedWidth(ctx, fullDay(m.on).toUpperCase(), 3);
+  const date = spacedWidth(ctx, m.headerText || fullDay(m.on).toUpperCase(), 3);
   return [[96 - 10, 96 + brand + 10], [984 - date - 10, 984 + 10]];
 }
 
@@ -763,7 +865,7 @@ function drawHeader(ctx, P, m) {
 
   setFont(ctx, '700 26px');
   ctx.fillStyle = TEXT2;
-  drawSpaced(ctx, fullDay(m.on).toUpperCase(), 984, 140, 3, 'right');
+  drawSpaced(ctx, m.headerText || fullDay(m.on).toUpperCase(), 984, 140, 3, 'right');
 }
 
 function drawTexts(ctx, P, m, dy) {
@@ -1098,7 +1200,7 @@ async function renderModel(m, { format = 'post', palette, photo = false } = {}) 
 
 /**
  * Render a share card to a PNG.
- * @param {object} spec  { kind: 'goal', key } | { kind: 'goal', goalId } | { kind: 'badge', id } | { kind: 'pr', key },
+ * @param {object} spec  { kind: 'goal', key } | { kind: 'goal', goalId } | { kind: 'badge', id } | { kind: 'pr', key } | { kind: 'recap', year },
  *                       optionally with `snapshot` (sample/unsaved data; the store is never written)
  * @param {object} [o]
  * @param {'post'|'story'} [o.format]
@@ -1159,8 +1261,13 @@ const ACTION = {
   copy: { label: 'Copy image', icon: 'copy' },
 };
 
-/** Open the "Share your win" sheet for a spec (see renderShareCard). Returns the sheet, or null. */
-export function openShareSheet(spec) {
+/**
+ * Open the "Share your win" sheet for a spec (see renderShareCard). Returns the sheet, or null.
+ * @param {object} spec
+ * @param {object} [o]
+ * @param {number} [o.zIndex]  stack above a full-screen layer (the year recap opens it at 970)
+ */
+export function openShareSheet(spec, { zIndex = null } = {}) {
   const m = resolveCard(spec);
   if (!m) {
     toast('Nothing to share yet', { urgent: true });
@@ -1212,7 +1319,8 @@ export function openShareSheet(spec) {
   let photoId = null;
 
   const sheet = openSheet({
-    title: 'Share your win',
+    title: m.sheetTitle || 'Share your win',
+    zIndex,
     body,
     footer,
     className: 'share-layer',

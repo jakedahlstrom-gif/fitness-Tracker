@@ -19,6 +19,7 @@ import { toast } from '../toast.js';
 import { haptic } from '../effects.js';
 import { rewardsCardHTML, bindRewardsCard } from '../studio.js';
 import { openShare } from '../celebrate.js';
+import { trendsTeaserHTML, warmCharts } from './insights.js';
 
 const RINGS = [
   { key: 'workouts', label: 'Workouts per week', color: 'pink', step: 1, unit: '' },
@@ -56,7 +57,10 @@ export function renderGoals(el, params = {}) {
       <div class="brand">GLOW<i>//</i>FIT</div>
       <div class="top-row">
         <h1>Goals</h1>
-        <button type="button" class="btn btn-small btn-secondary" data-action="new-goal">${icon('plus')} New goal</button>
+        <span class="top-actions">
+          <button type="button" class="icon-btn insights-btn" data-action="open-insights" aria-label="Insights">${icon('chart')}</button>
+          <button type="button" class="btn btn-small btn-secondary" data-action="new-goal">${icon('plus')} New goal</button>
+        </span>
       </div>
       <p class="subtle">Short, medium and long term. Tap a goal to edit it.</p>
     </header>
@@ -112,6 +116,7 @@ export function renderGoals(el, params = {}) {
       <button type="button" class="btn btn-small btn-ghost add-goal" data-action="new-goal" data-tier="long">${icon('plus')} Add long-term goal</button>
     </article>
 
+    ${trendsTeaserHTML()}
     ${rewardsCardHTML()}
     ${streaksCardHTML(d)}
     ${recordsCardHTML(d)}
@@ -293,6 +298,7 @@ function recordsCardHTML(d) {
 
 function bindGoals(el) {
   el.dataset.bound = '1';
+  el.addEventListener('pointerdown', (e) => { if (e.target.closest('#trends-link, .insights-btn')) warmCharts(); });
   el.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
@@ -330,6 +336,14 @@ function bindGoals(el) {
       }
       case 'archived':
         openArchivedSheet();
+        break;
+      case 'open-insights':
+        haptic('tick');
+        navigate('insights', { from: 'goals' });
+        break;
+      case 'open-trends':
+        haptic('tick');
+        navigate('insights', { from: 'goals', section: 'trends' });
         break;
       default:
     }

@@ -13,6 +13,7 @@ import { renderHome, resetHomeWeek } from './views/home.js';
 import { renderHistory } from './views/history.js';
 import { renderGoals } from './views/goals.js';
 import { renderProfile } from './views/profile.js';
+import { renderInsights, leaveInsights, setInsightsBack } from './views/insights.js';
 import { syncLook, initRewardsFlow } from './rewardsFlow.js';
 import { dismissBanner } from './celebrate.js';
 
@@ -21,35 +22,74 @@ const VIEWS = {
   history: renderHistory,
   goals: renderGoals,
   profile: renderProfile,
+  insights: renderInsights, // a pushed sub-view (from Home or Goals), not a tab
 };
+const TABS = ['home', 'history', 'goals', 'profile'];
+const INSIGHT_SECTIONS = ['calendar', 'trends', 'year'];
 
 let current = null;
+let insightsFrom = 'home'; // the tab Insights was opened from (stays highlighted, names the back chip)
+let pushed = false;        // entering Insights pushed a history entry, so Back can pop it
+const scrollMemo = {};     // tab → scrollY when Insights opened over it
+
+/** '#insights/trends' → ['insights', { section: 'trends' }], '#recap/2026' → ['insights', { recap: '2026' }]. */
+function parseHash(h = '') {
+  const [name = '', arg = ''] = String(h).replace(/^#/, '').split('/');
+  if (name === 'insights') return ['insights', INSIGHT_SECTIONS.includes(arg) ? { section: arg } : {}];
+  if (name === 'recap' && /^\d{4}$/.test(arg)) return ['insights', { recap: arg }];
+  return [name, {}];
+}
 
 // ---- Tabs ----
 
 function show(name, params = {}) {
   if (!VIEWS[name]) name = 'home';
-  const changed = name !== current;
+  const prev = current;
+  const changed = name !== prev;
+  if (changed && prev === 'insights') {
+    leaveInsights();
+    pushed = false;
+  }
+  if (name === 'insights') {
+    if (TABS.includes(params.from)) insightsFrom = params.from;
+    else if (TABS.includes(prev)) insightsFrom = prev;
+  }
+  if (changed && TABS.includes(prev)) scrollMemo[prev] = window.scrollY;
+  const restore = changed && prev === 'insights' && name === insightsFrom ? scrollMemo[name] : null;
   current = name;
   if (changed && name === 'home') resetHomeWeek();
 
   $$('.view').forEach((v) => { v.hidden = v.dataset.view !== name; });
+  const lit = name === 'insights' ? insightsFrom : name;
   $$('.tab').forEach((t) => {
-    const on = t.dataset.tab === name;
+    const on = t.dataset.tab === lit;
     t.classList.toggle('active', on);
-    if (on) t.setAttribute('aria-current', 'page');
+    if (on && lit === name) t.setAttribute('aria-current', 'page');
     else t.removeAttribute('aria-current');
   });
 
   const el = $(`#view-${name}`);
-  VIEWS[name](el, params);
-  if (changed && !params.day && !params.goal && !params.section) window.scrollTo({ top: 0 });
+  VIEWS[name](el, name === 'insights' ? { ...params, from: insightsFrom } : params);
+  if (restore != null) requestAnimationFrame(() => window.scrollTo({ top: restore }));
+  else if (changed && !params.day && !params.goal && !params.section) window.scrollTo({ top: 0 });
   try {
-    if (location.hash !== `#${name}`) history.replaceState(null, '', `#${name}`);
+    const hash = location.hash;
+    if (name === 'insights' && changed && prev && !/^#(insights|recap)\b/.test(hash)) {
+      history.pushState({ glow: 'sub' }, '', '#insights');
+      pushed = true;
+    } else if (hash !== `#${name}`) {
+      history.replaceState(name === 'insights' ? history.state : null, '', `#${name}`);
+    }
   } catch { /* some embedded frames don't allow URL changes */ }
 }
 
 setNavigator(show);
+
+// The Insights back chip: pop the entry we pushed (so the browser's Back stays in step), else go to the tab.
+setInsightsBack(() => {
+  if (pushed && history.state?.glow === 'sub') history.back();
+  else show(insightsFrom);
+});
 
 $$('.tab').forEach((tab) => {
   tab.querySelector('.tab-icon').innerHTML = icon(tab.dataset.icon);
@@ -60,11 +100,11 @@ $$('.tab').forEach((tab) => {
   });
 });
 
-window.addEventListener('hashchange', () => show(location.hash.slice(1)));
+window.addEventListener('hashchange', () => show(...parseHash(location.hash)));
 
 // Re-render the visible view whenever data changes.
 store.subscribe((reason) => {
-  if (current) VIEWS[current]($(`#view-${current}`));
+  if (current) VIEWS[current]($(`#view-${current}`), current === 'insights' ? { from: insightsFrom } : {});
   if (reason === 'workout:add' && store.state.workouts.length === 1) {
     // First workout: ask the browser not to evict our storage.
     navigator.storage?.persist?.().catch(() => {});
@@ -92,7 +132,8 @@ initHoldButton(holdBtn, {
     const before = store.derived(); // so the details sheet can tell what this log earned
     const workout = store.addWorkout(defaultWorkout());
     celebrateLog(origin);
-    if (current !== 'home') show('home');
+    // Logging from Insights stays there, so she sees today's square light up.
+    if (current !== 'home' && current !== 'insights') show('home');
     // Let the confetti pop before the sheet slides up.
     setTimeout(() => openLogSheet({ mode: 'fresh', workout, before }), 550);
   },
@@ -153,7 +194,7 @@ function registerServiceWorker() {
 
 // ---- Go ----
 
-show(location.hash.slice(1) || 'home');
+show(...parseHash(location.hash || '#home'));
 document.body.classList.add('ready');
 initRewardsFlow();
 

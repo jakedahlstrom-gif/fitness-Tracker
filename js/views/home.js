@@ -19,6 +19,7 @@ import { openSheet } from '../sheet.js';
 import { toast } from '../toast.js';
 import { haptic } from '../effects.js';
 import { isCelebrating, revealUnseen } from '../celebrate.js';
+import { insightsTeaserHTML, recapPillHTML, openYear, dismissRecap, warmCharts } from './insights.js';
 
 let weekOffset = 0; // 0 = this week, -1 = last week, …
 let lastProgress = null; // previous ring ratios, so rings animate from where they were and "pop" when they close
@@ -170,6 +171,7 @@ export function renderHome(el) {
       <h1 class="greeting">${greeting(now)}, ${esc(s.name || 'friend')}</h1>
       <p class="subtle">${esc(fmtLongDate(now))}</p>
       ${giftPillHTML()}
+      ${recapPillHTML()}
     </header>
 
     ${backupNudgeHTML(workouts.length)}
@@ -200,6 +202,8 @@ export function renderHome(el) {
     </article>
 
     <div class="tiles">${lastTile}${monthTile}${goalTile}${bestTile}</div>
+
+    ${insightsTeaserHTML()}
   `;
 
   animateRings(el);
@@ -361,6 +365,8 @@ function openDaySheet(key) {
 
 function bindHome(el) {
   el.dataset.bound = '1';
+  // Start fetching Chart.js as her finger lands on the Insights card.
+  el.addEventListener('pointerdown', (e) => { if (e.target.closest('#insights-teaser')) warmCharts(); });
   el.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
@@ -409,6 +415,18 @@ function bindHome(el) {
         break;
       case 'open-gift':
         revealUnseen();
+        break;
+      case 'open-insights':
+        haptic('tick');
+        navigate('insights', { from: 'home' });
+        break;
+      case 'recap-open':
+        haptic('tick');
+        openYear(btn.dataset.year);
+        break;
+      case 'recap-dismiss':
+        haptic('tick');
+        dismissRecap(btn.dataset.year);
         break;
       case 'backup-snooze':
         store.updateMeta({ backupNudgeSnoozedUntil: new Date(Date.now() + 14 * 86400000).toISOString() });

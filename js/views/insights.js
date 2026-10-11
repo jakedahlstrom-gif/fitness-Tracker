@@ -364,6 +364,15 @@ function mountCalendar(ix, { wave = false } = {}) {
   view.cal.ios.push(fillIO, seeIO);
 }
 
+// A viewport change (rotation, toolbar, zoom) can re-snap or clamp the pager onto another page.
+// Resize events run before the observers report, so pin the visible month again.
+window.addEventListener('resize', () => {
+  const cal = view?.cal;
+  if (!cal || view.mode !== 'month' || !cal.pager.isConnected) return;
+  const left = cal.months.indexOf(view.month) * cal.pager.clientWidth;
+  if (Math.abs(cal.pager.scrollLeft - left) > 1) cal.pager.scrollLeft = left;
+});
+
 /** Fill page i (and its neighbors) and scroll the pager to it instantly. */
 function showPage(i, { wave = false } = {}) {
   const { pager } = view.cal;

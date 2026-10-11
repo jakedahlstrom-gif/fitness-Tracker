@@ -14,6 +14,7 @@ import {
 import { derive, buildCtx, goalProgress, restCheck } from './progress.js';
 import { facts, evaluate, winCounts, unlockedSet, unlockOn, nextUp } from './rewards.js';
 import { BADGES } from './badges.js';
+import { buildIndex, computeInsights, yearRecap } from './insights.js';
 
 export { SCHEMA_VERSION, TYPE_COLORS, DEFAULT_TYPES, INTENSITIES };
 
@@ -27,6 +28,9 @@ let errorHandler = (err) => console.error(err);
 let rev = 0; // bumped on every change; derived() is cached per (rev, today)
 let memo = null;
 let rewardsMemo = null;
+let insightMemo = null; // Insights index per (rev, today)
+let insightsMemo = []; // last 4 computeInsights results, newest first
+let recapMemo = []; // last 3 yearRecap results, newest first
 let lastPersistOk = true;
 
 function trySet(key, value) {
@@ -146,6 +150,38 @@ export const store = {
       totals: { earned: visible.filter((def) => progress.get(def.id).earned).length, visible: visible.length },
     };
     rewardsMemo = { rev, today, value };
+    return value;
+  },
+
+  // ---- Insights (js/insights.js), cached per (rev, today) ----
+
+  /** The Insights index for today: buildIndex(state, today, derived()). */
+  insightIndex() {
+    const today = todayKey();
+    if (!insightMemo || insightMemo.rev !== rev || insightMemo.today !== today) {
+      insightMemo = { rev, today, value: buildIndex(state, today, store.derivedAt(today)) };
+    }
+    return insightMemo.value;
+  },
+
+  /** computeInsights for a range ('3m' | '6m' | '1y' | 'all'); keeps the last 4. */
+  insights(range) {
+    const key = `${rev}|${todayKey()}|${range}`;
+    const hit = insightsMemo.find((m) => m.key === key);
+    if (hit) return hit.value;
+    const value = computeInsights(store.insightIndex(), range);
+    insightsMemo = [{ key, value }, ...insightsMemo].slice(0, 4);
+    return value;
+  },
+
+  /** The Year in Glow model for 'YYYY' (null when that year has no workouts); keeps the last 3. */
+  recap(year) {
+    const today = todayKey();
+    const key = `${rev}|${today}|${year}`;
+    const hit = recapMemo.find((m) => m.key === key);
+    if (hit) return hit.value;
+    const value = yearRecap(state, store.derivedAt(today), year, today, store.insightIndex());
+    recapMemo = [{ key, value }, ...recapMemo].slice(0, 3);
     return value;
   },
 

@@ -1039,7 +1039,7 @@ export function trendsTeaserHTML() {
       <span class="tt-body">
         <span class="tt-left">
           <span class="tt-num">${num}</span>
-          ${avg != null ? deltaChip(ins.kpis?.delta?.min) : ''}
+          ${avg != null && Math.abs(ins.kpis?.delta?.min || 0) >= 0.01 ? deltaChip(ins.kpis.delta.min) : ''}
         </span>
         <span class="mini-bars tt-bars" aria-hidden="true">${bars}</span>
       </span>

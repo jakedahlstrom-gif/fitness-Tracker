@@ -435,6 +435,10 @@ button.hm-cell:not(:disabled):active { transform: scale(.9); }
   justify-content: end;
   overflow: hidden;
   width: 100%;
+  padding: 3px 3px 3px 0; /* room for today's ring */
+  /* Older weeks fade out at the left edge instead of ending on a half-cut column. */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 36px);
+  mask-image: linear-gradient(to right, transparent, #000 36px);
 }
 .hs-mark { font-size: 10px; font-weight: 650; line-height: 13px; color: var(--text-3); white-space: nowrap; overflow: visible; }
 .hs-cell { width: 12px; height: 12px; border-radius: 3px; position: relative; }

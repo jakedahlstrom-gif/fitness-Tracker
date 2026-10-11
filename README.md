@@ -9,7 +9,7 @@ Plain HTML, CSS and JavaScript (ES modules), with no build step and no dependenc
 - [x] **Stage 1: Core logging.** Hold-to-log button with ring fill, haptics, sound and confetti; quick details sheet (type, duration, distance, intensity, feel 1–5, mood, note, photo, date); weekly strip; editable history; weekly ring targets; settings; JSON backup.
 - [x] **Stage 2: Goals and motivation.** Weekly / monthly / long-term goals with progress bars (create, edit, archive); weekly rings that pop when they close; weekly streak with freezes and a daily streak with rest days; five personal records flagged the moment you set them.
 - [x] **Stage 3: Celebrations and rewards.** Celebrations sized to the win (a pop, confetti cannons, or full-screen fireworks), 50 badges in a Trophy Case, unlockable themes and hold-button styles in the Glow Studio, and a "Goal crushed!" share card.
-- [ ] **Stage 4: Insights.** Heatmap, trends (Chart.js), year in review.
+- [x] **Stage 4: Insights.** A Glow calendar heatmap (month and year views), trends with Chart.js (minutes per week, workout mix), her best day and how each type feels, and a swipeable "Your Year in Glow" recap with a shareable card.
 - [ ] **Stage 5: Extras.** Reminders, challenges, couple mode.
 
 ## Open it
@@ -59,6 +59,16 @@ None of these numbers are stored. `js/progress.js` computes them from the workou
 - **Calm mode** (Profile → Celebrations) skips fireworks and halves the confetti. The phone's **Reduce Motion** setting turns off the particle effects and keeps simple fades.
 - **Share card:** a 1080×1350 post (or 1920 tall story) image drawn on a canvas. On her phone it opens the share sheet. In the claude.ai preview, sharing and downloads are blocked by the frame, so press and hold the image to save it (or use Copy image).
 
+## How Insights work
+
+- **Where:** tap the Insights card on Home (or the chart icon / Trends card on Goals). It opens as its own page with a back button; the hold button still works there, and a new log lights up today's square while she watches.
+- **Glow calendar:** squares fill at 1 minute and get brighter at three steps based on her own targets: half, one and one-and-a-half of her "minutes per active day" (weekly minutes ÷ active-days target, rounded to 5). With the default 150 min / 3 days that's 25, 50 and 75+ minutes. The steps follow her current targets.
+- **Best day:** the weekday with the most minutes per occurrence in the chosen range (today only counts once she has logged). It appears after 8 active days.
+- **Feel by type:** a type needs 3 rated workouts to be shown; "feels best" needs a lead of 0.3.
+- **Years:** a week belongs to the year that holds its Thursday (Wednesday for Sunday-start weeks), so nothing is counted twice at New Year.
+- **Year in Glow:** every year with a workout has a recap on the Insights page. It's offered on Home from December 1 to January 31 (for the year just ending), until she watches or dismisses it; that choice is saved with her data (`meta.recapSeen`), so it travels with backups.
+- **Charts and offline:** Chart.js loads from jsDelivr (pinned version with an integrity hash) only when Insights opens. The service worker keeps a copy in a cache that survives updates, so charts work offline after the app has been online once. If it can't load, simple built-in charts show instead with a Retry link. The claude.ai preview has no service worker, so it fetches Chart.js once per visit.
+
 ## Tests
 
 The streak, goal and record logic has unit tests (no dependencies needed):
@@ -101,6 +111,9 @@ css/celebrate.css       Celebration overlays (pill, banner, finale, reveal, intr
 css/looks.css           Button skins, Glow Studio, Rewards card, palette ambience
 css/trophies.css        Trophy Case and badge detail
 css/share.css           Share sheet
+css/insights.css        Insights page and Glow calendar
+css/charts.css          Chart cards and their fallbacks
+css/recap.css           Year in Glow story
 icons/                  App icons (PNG + SVG)
 js/
   app.js                Entry point: tabs, hold-to-log wiring, service worker
@@ -116,6 +129,10 @@ js/
   shareCard.js          "Goal crushed!" share image + share sheet
   studio.js, lookParts.js  Glow Studio, Rewards card, mini hold buttons
   lab.js                Celebration lab (5 taps on the version line)
+  insights.js           Insights stats: heatmap levels, trends, best day, feel, year recap (pure, unit-tested)
+  heatmap.js            Glow calendar markup (month pages, mini months, week strip)
+  charts.js             Chart.js loader, theme and the two chart cards, with built-in fallbacks
+  recap.js              "Your Year in Glow" story player
   photos.js             IndexedDB photo storage + image compression
   backup.js             Build, save, parse and restore a JSON backup
   backupFlow.js         Export/restore flows; copy/paste when running in a frame
@@ -128,8 +145,8 @@ js/
   components.js         Rings, badges, segmented controls, switches
   stats.js, dates.js    Week/month math, streaks, date formatting
   icons.js              Inline SVG icon set
-  views/                Home, History, Goals, Profile screens; trophies.js (Trophy Case)
-tests/                  Unit tests for progress.js, rewards.js and schema.js (npm test)
+  views/                Home, History, Goals, Profile screens; trophies.js (Trophy Case); insights.js (Insights page)
+tests/                  Unit tests for progress.js, rewards.js, insights.js and schema.js (npm test; npm run test:tz checks other time zones)
 package.json            Only for `npm test`; the app itself has no build step
 ```
 

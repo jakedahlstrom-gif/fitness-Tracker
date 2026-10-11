@@ -630,7 +630,7 @@ const clip80 = (s) => (s.length > 80 ? `${s.slice(0, 79).trimEnd()}…` : s);
  *   goals: { weekly, monthly (win counts), long: [labels], total },
  *   badges: [{ id, on, rarity }] rarest first, then by date,
  *   unlocks: [{ id: 'palette:…' | 'skin:…', on }] by date,
- *   feel: { avg, n, amazing, dist[5] (feel 1…5), topMood: { emoji, n } | null, bestType } | null,
+ *   feel: { avg, n, amazing, dist[5] (feel 1…5), topMood: { emoji, n } | null, bestType, bestAvg } | null,
  *   moment: { date, min (that workout's minutes), dayMin, typeId, feel, mood, note (≤ 80 chars), photoId, reason: 'photo' | 'best' },
  *   photoIds: every photo in Y, best day first,
  *   slides: the SLIDES ids whose rule holds,
@@ -778,10 +778,11 @@ export function yearRecap(state, d, year, today, ix = buildIndex(state, today, d
   if (rated) {
     let top = null;
     for (const md of moods.values()) if (!top || md.n > top.n || (md.n === top.n && md.last > top.last)) top = md;
+    const fb = feelByType(ix, y0, yEnd);
     feel = {
       avg: feelSum / rated, n: rated, amazing: dist[4], dist,
       topMood: top && top.n >= MIN.recapMood ? { emoji: top.emoji, n: top.n } : null,
-      bestType: feelByType(ix, y0, yEnd).best,
+      bestType: fb.best, bestAvg: fb.best ? fb.rows[0].avg : null,
     };
   }
 

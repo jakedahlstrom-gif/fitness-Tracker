@@ -2,7 +2,7 @@
 // (and npm run test:tz, which repeats this file in two odd time zones). No dependencies needed.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { derive } from '../js/progress.js';
 import {
   dayNum, keyOf, weekdayOf, buildIndex, heatScale, heatLevel, heatRamp, HEAT_RAMP, monthGrid, yearStrip,
@@ -466,4 +466,18 @@ test('S1 store memos', async () => {
   assert.notEqual(store.insights('3m'), a);
   assert.equal(store.insights('3m').kpis.count, 2);
   assert.equal(store.recap('1999'), null);
+});
+
+test('I33 Chart.js is pinned, cached across releases and precached files exist', () => {
+  const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+  const charts = readFileSync(new URL('../js/charts.js', import.meta.url), 'utf8');
+  const url = (src) => src.match(/CHART_URL = '([^']+)'/)[1];
+  assert.match(url(charts), /chart\.js@\d+\.\d+\.\d+\//);
+  assert.equal(url(sw), url(charts));
+  const cache = sw.match(/CACHE_VERSION = '([^']+)'/)[1];
+  const cdn = sw.match(/CDN_CACHE = '([^']+)'/)[1];
+  assert.ok(!cdn.startsWith(cache));
+  for (const f of sw.match(/'\.\/(?:css|js)\/[^']+'/g)) {
+    assert.ok(existsSync(new URL(`../${f.slice(3, -1)}`, import.meta.url)), `missing ${f}`);
+  }
 });

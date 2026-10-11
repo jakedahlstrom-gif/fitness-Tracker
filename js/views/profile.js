@@ -16,7 +16,7 @@ import { TYPE_COLORS } from '../store.js';
 import { trophyCardHTML, bindTrophyCard } from './trophies.js';
 import { studioCardHTML, bindStudioCard } from '../studio.js';
 
-export const APP_VERSION = '1.2.1 · Stage 3';
+export const APP_VERSION = '1.3.0 · Stage 4';
 
 let installPrompt = null; // Chrome/Android "beforeinstallprompt" event
 window.addEventListener('beforeinstallprompt', (e) => {

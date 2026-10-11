@@ -265,10 +265,10 @@ S.squares = (m) => {
   const bright = m.brightMonth;
   const months = (m.quilt || []).map((g, i) => {
     const dim = since && g.key < since.slice(0, 7);
-    const svg = miniMonthSVG(g, { cell: 10, gap: 2, delay: (cell) => Math.max(0, daysBetween(y0, cell.key)) * 4 });
-    const pin = since && g.key === since.slice(0, 7) ? `<span class="rc-pin">Day one: ${esc(monDay(since))}</span>` : '';
+    let svg = miniMonthSVG(g, { cell: 10, gap: 2, delay: (cell) => Math.max(0, daysBetween(y0, cell.key)) * 4 });
+    if (since) svg = svg.replace(`data-k="${since}"`, `data-k="${since}" data-one="1"`);
     return `<div class="rc-mini${dim ? ' dim' : ''}${bright && g.key === bright.key ? ' bright' : ''}" style="--i:${i}">
-      <span>${esc(fmt(`${g.key}-01`, { month: 'short' }))}</span>${svg}${pin}</div>`;
+      <span>${esc(fmt(`${g.key}-01`, { month: 'short' }))}</span>${svg}</div>`;
   }).join('');
   const rest = m.totals.rest;
   return {
@@ -277,6 +277,7 @@ S.squares = (m) => {
       ${headline([{ b: fmtNum(m.totals.active) }, `${m.totals.active === 1 ? 'day' : 'days'} you glowed.`], { t: 180 })}
       <p class="rc-body" ${T(620)}>${esc(rest > 0 ? `Plus ${plural(rest, 'rest day')} you earned.` : 'Every square is a day you showed up for yourself.')}</p>
       <div class="rc-quilt" ${T(300)} aria-hidden="true">${months}</div>
+      ${since ? `<p class="rc-pin" ${T(900)}><i></i>Day one: ${esc(monDay(since))}</p>` : ''}
       ${bright ? chip(`${icon('sparkle')}${esc(`Brightest month: ${monthName(bright.key)} · ${plural(bright.active, 'active day')}`)}`, 1700) : ''}`,
     run(x) {
       for (let k = 0; k < 10; k++) x.at(300 + k * 140, () => sound.introTick(k));
@@ -331,7 +332,7 @@ S.rhythm = (m) => {
     const paths = tod.hours.map((v, h) => `<path class="${fav(h) ? 'fav' : ''}${v ? '' : ' none'}" style="--i:${h}" d="${wedge(h, v ? 6 + (v / max) * 44 : 3)}"/>`).join('');
     const night = tod.bucket === 'evening' || tod.bucket === 'night';
     clock = `<div class="rc-clock" ${T(160)} aria-hidden="true">
-      <svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="24" class="dial"/>${paths}
+      <svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="55" class="track"/><circle cx="80" cy="80" r="24" class="dial"/>${paths}
         <text x="80" y="8" class="tick">12a</text><text x="155" y="83" class="tick">6a</text><text x="80" y="158" class="tick">12p</text><text x="5" y="83" class="tick">6p</text></svg>
       <span class="rc-orb${night ? ' moon' : ''}">${icon(night ? 'moon' : 'sun')}</span></div>`;
   }
@@ -461,10 +462,13 @@ S.trophies = (m) => {
   }
   if (unlocks.length) {
     const orbs = unlocks.slice(0, 4).map((u) => (u.type === 'palette' ? paletteOrbHTML(u.id, { size: 28, theme: 'dark' }) : holdMiniHTML(u.id, { size: 30 }))).join('');
-    lines.push(`<p class="rc-small rc-unlocks" ${T(940)}><span class="rc-orbs">${orbs}</span><span>Unlocked: ${esc(unlocks.map((u) => u.name).join(', '))}</span></p>`);
+    const names = unlocks.map((u) => u.name);
+    const list = names.length > 3 ? `${names.slice(0, 2).join(', ')} and ${names.length - 2} more` : names.join(', ');
+    lines.push(`<p class="rc-small rc-unlocks" ${T(940)}><span class="rc-orbs">${orbs}</span><span>Unlocked: ${esc(list)}</span></p>`);
   }
-  const grid = badges.slice(0, 12).map((b, i) => `<span class="rc-badge" style="--i:${i}">${badgeSVG(b.id, { size: 56, className: 'no-glow' })}</span>`).join('')
-    + (badges.length > 12 ? `<span class="rc-badge more" style="--i:12">+${badges.length - 12}</span>` : '');
+  const shown = badges.slice(0, badges.length > 12 ? 11 : 12);
+  const grid = shown.map((b, i) => `<span class="rc-badge" style="--i:${i}">${badgeSVG(b.id, { size: 56, className: 'no-glow' })}</span>`).join('')
+    + (badges.length > 12 ? `<span class="rc-badge more" style="--i:11">+${badges.length - 11}</span>` : '');
   return {
     html: `
       ${kicker('TROPHY CASE')}
@@ -473,7 +477,7 @@ S.trophies = (m) => {
       ${lines.join('')}
       ${grid ? `<div class="rc-badges" aria-hidden="true">${grid}</div>` : ''}`,
     run(x) {
-      const n = Math.min(badges.length, 12);
+      const n = shown.length;
       if (n) {
         x.at(1100, () => sound.bell());
         if (n > 1) x.at(1100 + (n - 1) * 90 + 200, () => sound.bell(0));
@@ -549,14 +553,14 @@ S.finale = (m, c) => {
   const min = m.totals.min;
   const top = m.topTypes?.[0];
   const tt = top ? typeOf(top.typeId) : null;
-  const streak = m.streaks.weekly.value >= 2 ? plural(m.streaks.weekly.value, 'wk', 'wks')
-    : m.streaks.daily.value >= 2 ? plural(m.streaks.daily.value, 'day') : '—';
+  const { weekly: sw, daily: sd } = m.streaks;
+  const streak = sw.value >= 2 ? [fmtNum(sw.value), 'Wk streak'] : sd.value >= 2 ? [fmtNum(sd.value), 'Day streak'] : ['—', 'Best streak'];
   const tiles = [
     ['A', fmtNum(m.totals.n), m.totals.n === 1 ? 'Workout' : 'Workouts'],
-    ['C', min >= 60 ? fmtNum(Math.round(min / 60)) : fmtNum(min), min >= 60 ? 'Hours' : 'Minutes'],
+    ['C', min >= 60 ? fmtNum(Math.round(min / 60)) : fmtNum(min), min >= 60 ? (Math.round(min / 60) === 1 ? 'Hour' : 'Hours') : 'Minutes'],
     ['B', fmtNum(m.totals.active), 'Active days'],
     [tt ? tt.color : 'A', tt ? esc(tt.label) : '—', 'Top type'],
-    ['orange', streak, 'Best streak'],
+    ['orange', ...streak],
     ['yellow', fmtNum((m.badges || []).length), 'Badges'],
   ].map(([col, v, l], i) => `<div class="rc-ftile" style="--c:${cvar(col)};--i:${i}"><b>${v}</b><span>${l}</span></div>`).join('');
   const line = m.soFar ? `${plural(m.daysLeft, 'more day')} to glow.` : `Here's to an even brighter ${Number(m.year) + 1}.`;

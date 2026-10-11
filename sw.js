@@ -3,7 +3,7 @@
 // When you deploy changes, bump CACHE_VERSION. Phones will download the new files
 // in the background and show an "Update" prompt the next time the app is opened.
 
-const CACHE_VERSION = 'glow-v1.2.1';
+const CACHE_VERSION = 'glow-v1.3.0';
 
 // Third-party files (Chart.js for Insights) live in their own cache that survives app
 // releases: the URLs are version-pinned, so an entry never goes stale. Only exact

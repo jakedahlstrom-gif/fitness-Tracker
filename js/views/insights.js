@@ -206,7 +206,7 @@ const later = (fn, ms) => { if (view) view.timers.push(setTimeout(fn, ms)); };
 
 function revealSection(section, fresh) {
   const target = view?.el.querySelector(`#${SECTION_ID[section] || ''}`);
-  if (!target || target.hidden) return;
+  if (!target || target.hidden) { window.scrollTo({ top: 0 }); return; } // e.g. no Trends yet
   const flash = section === 'trends' ? (view.el.querySelector('#ins-minutes') || view.el.querySelector('#ins-kpis')) : target;
   requestAnimationFrame(() => {
     target.scrollIntoView({ block: 'start', behavior: fresh || prefersReducedMotion() ? 'auto' : 'smooth' });

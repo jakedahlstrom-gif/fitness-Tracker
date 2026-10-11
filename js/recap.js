@@ -617,9 +617,9 @@ function markWatched(Y) {
   store.updateMeta({ recapSeen: { ...seen, [Y]: 'watched' } });
 }
 
-/** Load the first photo that decodes: the moment's, then the rest of the year's. */
+/** Load the moment's own photo (never another day's, which would mislabel it). */
 async function prefetchPhoto(m) {
-  const ids = [...new Set([m.moment?.photoId, ...(m.photoIds || [])].filter(Boolean))];
+  const ids = [m.moment?.photoId].filter(Boolean);
   for (const id of ids.slice(0, 6)) {
     try {
       const url = await photos.get(id);

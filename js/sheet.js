@@ -15,13 +15,14 @@ function lockScroll() { document.body.classList.toggle('has-overlay', stack.leng
  * @param {string} o.body        body HTML
  * @param {string} [o.footer]    sticky footer HTML (buttons)
  * @param {string} [o.className]
+ * @param {number} [o.zIndex]     stack above a full-screen layer instead of the default sheet level
  * @param {(reason: string) => void} [o.onClose]  called once with 'dismiss' or whatever close() was given
  * @returns {{ el: HTMLElement, body: HTMLElement, close: (reason?: string) => void }}
  */
-export function openSheet({ title = '', headHTML = '', body = '', footer = '', className = '', onClose } = {}) {
+export function openSheet({ title = '', headHTML = '', body = '', footer = '', className = '', onClose, zIndex = null } = {}) {
   const layer = document.createElement('div');
   layer.className = `sheet-layer ${className}`;
-  layer.style.zIndex = String(200 + stack.length * 10);
+  layer.style.zIndex = String(zIndex ?? 200 + stack.length * 10); // zIndex: above an overlay (e.g. the year recap)
   layer.innerHTML = `
     <div class="sheet-backdrop" data-close></div>
     <div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}" tabindex="-1">

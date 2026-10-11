@@ -252,16 +252,16 @@ function shareSpec(e) {
   return null;
 }
 
-export function openShare(spec) {
+export function openShare(spec, opts = {}) {
   if (!spec) return;
-  import('./shareCard.js').then((m) => m.openShareSheet(spec)).catch((err) => {
+  import('./shareCard.js').then((m) => m.openShareSheet(spec, opts)).catch((err) => {
     console.error(err);
     toast("Couldn't open sharing");
   });
 }
 
 /** Trap Tab inside a modal layer and close on Escape. Returns a cleanup. */
-function modalKeys(layer, onEscape) {
+export function modalKeys(layer, onEscape) {
   const onKey = (e) => {
     if (e.key === 'Escape') { e.preventDefault(); onEscape(); return; }
     if (e.key !== 'Tab') return;

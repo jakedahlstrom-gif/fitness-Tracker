@@ -74,7 +74,7 @@ let timer = 0;
 export function reconcile(delay = 400) {
   clearTimeout(timer);
   timer = setTimeout(() => {
-    if (isLogSheetOpen() || isCelebrating()) { reconcile(1500); return; }
+    if (isLogSheetOpen() || isCelebrating() || document.body.classList.contains('recap-open')) { reconcile(1500); return; }
     quietPass();
   }, delay);
 }

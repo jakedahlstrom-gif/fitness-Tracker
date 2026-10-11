@@ -160,6 +160,8 @@ export function applyLook(look = current, theme = document.documentElement.datas
     }));
   } catch { /* storage blocked */ }
   onChange(current);
+  // Anything drawn with colors outside CSS (charts, canvases) listens for this to recolor.
+  if (typeof CustomEvent === 'function') document.dispatchEvent(new CustomEvent('glow:look', { detail: current }));
   return current;
 }
 

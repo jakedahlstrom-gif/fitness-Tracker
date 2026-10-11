@@ -223,10 +223,20 @@
 }
 @keyframes aurora-drift { from { background-position: 0% 0%, 100% 100%; } to { background-position: 100% 60%, 0% 30%; } }
 
+/* The finale card scrolls inside a full-screen wrapper, so short screens never cut it off. */
+.cel-wrap {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center;
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px);
+  pointer-events: none;
+}
+.cel-layer.hero .cel-wrap { pointer-events: auto; }
 .cel-card {
-  position: absolute; left: 50%; top: 50%;
-  width: min(100% - 32px, 340px);
-  transform: translate(-50%, -50%);
+  position: relative;
+  margin: auto 0;
+  width: min(100%, 340px);
+  flex: none;
   display: flex; flex-direction: column; align-items: center; gap: 10px;
   text-align: center;
   color: var(--text);
@@ -234,7 +244,12 @@
   pointer-events: none;
 }
 .cel-layer.hero .cel-card { pointer-events: auto; }
-.cel-layer.out .cel-card { opacity: 0; transform: translate(-50%, -50%) scale(.96); transition: opacity .22s, transform .22s; }
+.cel-layer.out .cel-card { opacity: 0; transform: scale(.96); transition: opacity .22s, transform .22s; }
+.cel-medal svg { width: 100%; height: 100%; }
+@media (max-height: 740px) {
+  .cel-medal { width: 124px; height: 124px; }
+  .cel-card { gap: 8px; }
+}
 .cel-card > * { opacity: 0; }
 .cel-layer.hero .cel-kicker { animation: rise .3s ease-out forwards; }
 .cel-layer.hero .cel-medal { animation: rise .3s ease-out forwards; }
@@ -540,12 +555,12 @@ body.celebrating .hold-btn *, body.celebrating .hold-btn { animation-play-state:
 .cel-layer.rm .rv-actions, .cel-layer.rm .rv-kicker, .cel-layer.rm .cel-stats.chips .cel-chip {
   animation: none !important; opacity: 1; transform: none; filter: none;
 }
-.cel-layer.rm .rv-card { transform: none; opacity: 1; transition: none; }
+.cel-layer.reveal.rm .rv-card, .cel-layer.reveal.rm.enter .rv-card, .cel-layer.reveal.rm.flip .rv-card { transform: none; opacity: 1; transition: none; animation: none; }
 .cel-layer.rm .rv-front { transition: opacity .3s; }
 .cel-layer.rm .rv-back { transform: none; opacity: 0; transition: opacity .3s; }
 .cel-layer.rm.flip .rv-front { opacity: 0; }
 .cel-layer.rm.flip .rv-back { opacity: 1; }
-.cel-layer.rm .rv-rays { opacity: .1; animation: none; }
+.cel-layer.reveal.rm .rv-rays, .cel-layer.reveal.rm.rays .rv-rays { opacity: .1; animation: none; }
 .cel-layer.rm .rv-orb, .cel-layer.rm .rv-mini { transform: none; opacity: 1; }
 .cel-layer.rm .in-badge { animation: none; opacity: 1; transform: none; }
 
@@ -605,3 +620,6 @@ body.celebrating .gift-pill { display: none; }
 [data-glow-theme="light"] :is(.cel-layer.l3, .cel-layer.reveal, .cel-layer.intro) .badge-art.s-earned.r-legendary { filter: drop-shadow(0 0 22px color-mix(in srgb, var(--b1) 55%, transparent)); }
 [data-glow-theme="light"] .cel-layer.reveal .rv-scrim { background: rgba(5, 6, 12, .86); }
 [data-glow-theme="light"] .cel-layer.reveal.sky .rv-scrim { background: radial-gradient(ellipse at 50% 115%, rgba(48, 12, 72, .94), rgba(5, 6, 12, .96) 62%); }
+
+/* Error toasts ("Storage is full") stay visible above celebration layers. */
+.toast-root:has(.toast.urgent) { z-index: 975; }

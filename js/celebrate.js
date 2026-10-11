@@ -192,11 +192,16 @@ async function play(plan, opts) {
     else if (plan.level === 2) beatA = playCannons(plan, opts, run);
     else if (plan.level === 3) beatA = playFinale(plan, opts, run);
     if (plan.reveal && !run.done) {
+      let skipReveal = false;
       if (plan.level === 2) {
+        const b = banner;
         await run.wait(plan.reveal.delay || 2400);
+        // She tapped the banner to share, or started a new log: don't cover that with the reveal.
+        // The badges stay unseen, so the Home gift pill offers them later.
+        skipReveal = b?.by === 'share' || b?.by === 'hold';
         banner?.dismiss();
       } else if (beatA) await beatA;
-      if (!run.done) await playReveal(plan.reveal, { ...opts, inGesture: opts.inGesture && !beatA }, run);
+      if (!run.done && !skipReveal) await playReveal(plan.reveal, { ...opts, inGesture: opts.inGesture && !beatA }, run);
     } else if (beatA) await beatA;
   } catch (err) {
     console.error(err);
@@ -225,11 +230,11 @@ export function cancelCelebrations() {
 }
 
 /** A new hold-to-log dismisses an L2 banner. */
-export function dismissBanner() { banner?.dismiss(); }
+export function dismissBanner() { banner?.dismiss(false, 'hold'); }
 
 // When the page is hidden mid-show, finish instantly (the ledger is already written).
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden' && active) {
+  if (document.visibilityState === 'hidden' && active && !active.keepOnHide) {
     queued = null;
     active.end();
     clearConfetti();
@@ -427,16 +432,18 @@ function playCannons(plan, opts, run) {
   let remaining = 4200;
   let started = performance.now();
   let timer = 0;
-  const dismiss = (instant = false) => {
+  let dismissedBy = null;
+  const dismiss = (instant = false, why = 'auto') => {
     if (gone) return;
     gone = true;
+    dismissedBy = why;
     clearTimeout(timer);
     if (banner?.el === el) banner = null;
     show?.stop(300);
     layer.classList.add('out');
     setTimeout(() => { layer.remove(); resolveDone(); }, instant ? 0 : 320);
   };
-  banner = { el, dismiss };
+  banner = { el, dismiss, get by() { return dismissedBy; } };
   run.onEnd(() => dismiss(true));
   timer = setTimeout(dismiss, 4200);
 
@@ -446,7 +453,7 @@ function playCannons(plan, opts, run) {
   onSwipe(el, (dy) => { if (dy < -30) dismiss(); });
   el.addEventListener('click', (ev) => {
     if (!spec) return;
-    if (ev.target.closest('.cb-share') || !ev.target.closest('button')) { dismiss(); openShare(spec); }
+    if (ev.target.closest('.cb-share') || !ev.target.closest('button')) { dismiss(false, 'share'); openShare(spec); }
   });
 
   // Timeline
@@ -581,7 +588,7 @@ function playFinale(plan, opts, run) {
 
   const layer = newLayer('l3', `
     <div class="cel-sky"><div class="cel-aurora"></div></div>
-    <div class="cel-card" role="dialog" aria-modal="true" aria-labelledby="cel-title" style="${darkVars()}">
+    <div class="cel-wrap"><div class="cel-card" role="dialog" aria-modal="true" aria-labelledby="cel-title" style="${darkVars()}">
       <div class="cel-kicker">${esc(kicker)}</div>
       <div class="cel-medal">${medalSVG(calm || rm)}</div>
       <h2 id="cel-title" class="cel-title" aria-label="${esc(titleText)}"><span aria-hidden="true">${letters(titleText)}</span></h2>
@@ -594,7 +601,7 @@ function playFinale(plan, opts, run) {
         ${spec ? `<button type="button" class="btn btn-claim" data-act="share">${icon('share')} Share your win</button>` : ''}
         <button type="button" class="btn btn-ghost" data-act="close">Keep glowing</button>
       </div>
-    </div>`);
+    </div></div>`);
   layer.style.setProperty('--sky-a', skyColors().A);
   const card = layer.querySelector('.cel-card');
   let show = null;
@@ -1010,12 +1017,15 @@ export function playIntro({ sample = null } = {}) {
       </div>
     </div>`);
   requestAnimationFrame(() => layer.classList.add('in'));
+  // Until she taps the gift nothing has been shown, so leaving the app keeps it waiting.
+  let opened = false;
+  run.keepOnHide = true;
   let closed = false;
-  const close = (instant = false) => {
+  const close = (instant = false, mark = true) => {
     if (closed) return;
     closed = true;
     unKeys();
-    if (!sample) store.markSeen({ badges: earned.map((d) => d.id), unlocks, intro: true });
+    if (!sample && mark) store.markSeen({ badges: earned.map((d) => d.id), unlocks, intro: true });
     layer.classList.add('out');
     setTimeout(() => {
       layer.remove();
@@ -1027,11 +1037,13 @@ export function playIntro({ sample = null } = {}) {
       document.dispatchEvent(new CustomEvent('glow:celebration-end'));
     }, instant ? 0 : 320);
   };
-  run.onEnd(() => close(true));
+  run.onEnd(() => close(true, opened)); // a forced end (data replaced) marks nothing it didn't show
   const unKeys = modalKeys(layer, () => close());
   layer.querySelector('.in-gift').focus({ preventScroll: true });
 
   const open = () => {
+    opened = true;
+    run.keepOnHide = false;
     unlockAudio();
     const orb = layer.querySelector('.in-orb').getBoundingClientRect();
     layer.classList.add('opened');

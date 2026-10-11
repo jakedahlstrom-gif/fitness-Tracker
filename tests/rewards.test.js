@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { derive, milestones } from '../js/progress.js';
 import {
-  facts, evaluate, collect, winCounts, unlockedSet, resolveLook, buildPlan, pickLine, compliment,
+  facts, evaluate, collect, winCounts, unlockedSet, resolveLook, buildPlan, pickLine, compliment, nextUp,
 } from '../js/rewards.js';
 import { BADGES, FAMILY_BY_ID } from '../js/badges.js';
 import { PALETTES, SKINS, LADDERS } from '../js/looks.js';
@@ -384,4 +384,14 @@ test('R35 compliments', () => {
   assert.equal(compliment(S({ workouts: [W('2026-09-10'), a, b] }), b, TODAY, 'Mel'), 'First workout of October!');
   const c = W('2026-10-03', 30, { type: 'yoga' });
   assert.equal(compliment(S({ workouts: [W('2026-09-10'), a, b, c] }), c, TODAY, 'Mel'), 'Your 3rd yoga this week');
+});
+
+test('R36 near-miss hints say what to actually do', () => {
+  const prog = (id, value, target) => [id, { value, target, earned: false, hidden: false }];
+  const hints = nextUp({ progress: new Map([prog('r10', 8, 10), prog('long90', 80, 90), prog('feel5', 4, 5), prog('ws4', 3, 4)]), counts: null }, { units: 'mi', limit: 9 });
+  const text = Object.fromEntries(hints.map((h) => [h.id, h.text]));
+  assert.equal(text.r10, 'Close all 3 rings in 2 more weeks → Ring Master');
+  assert.equal(text.long90, 'One 90-min workout → Marathon Session');
+  assert.equal(text.feel5, '1 more “Amazing” workout → Good Vibes Only');
+  assert.equal(text.ws4, '1 more week in a row → Month Strong');
 });

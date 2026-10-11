@@ -11,8 +11,8 @@ let deferred = null;
 /** The celebration director registers this; while it returns true, ordinary toasts wait. */
 export function setToastGate(fn) { isBusy = fn; }
 
-/** Hide whatever toast is showing (a celebration is about to take the stage). */
-export function dismissToast() { current?.dismiss(); }
+/** Hide whatever toast is showing (a celebration is about to take the stage). Errors stay. */
+export function dismissToast() { if (!current?.urgent) current?.dismiss(); }
 
 /** Show the toast that waited for a celebration to finish (only the latest one is kept). */
 export function flushToasts() {
@@ -37,8 +37,9 @@ export function flushToasts() {
  */
 export function toast(message, opts = {}) {
   const { action = null, duration = 3000, onExpire = null, urgent = false, variant = null, sub = '', color = 'cyan', icon = 'sparkle', onTap = null } = opts;
-  if (!urgent && variant !== 'win' && isBusy()) {
-    deferred = [message, opts];
+  // Ordinary toasts wait while a celebration plays or an error is showing; the latest one is kept.
+  if (!urgent && (current?.urgent || (variant !== 'win' && isBusy()))) {
+    if (variant !== 'win') deferred = [message, opts];
     return { dismiss() { if (deferred?.[0] === message) deferred = null; }, el: null };
   }
   current?.dismiss();
@@ -53,11 +54,11 @@ export function toast(message, opts = {}) {
       <span class="wp-text"><span class="wp-title">${esc(message)}</span>${sub ? `<span class="wp-sub">${esc(sub)}</span>` : ''}</span>
       ${actionHTML}`;
   } else {
-    el.className = 'toast';
+    el.className = urgent ? 'toast urgent' : 'toast';
     el.innerHTML = `<span class="toast-msg">${esc(message)}</span>${actionHTML}`;
   }
   root.appendChild(el);
-  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+  requestAnimationFrame(() => requestAnimationFrame(() => { if (!gone) el.classList.add('show'); }));
 
   let acted = false;
   let gone = false;
@@ -72,6 +73,7 @@ export function toast(message, opts = {}) {
     setTimeout(() => el.remove(), 250);
     if (!acted) onExpire?.();
     if (current === handle) current = null;
+    if (urgent) setTimeout(flushToasts, 260);
   }
 
   el.addEventListener('click', (e) => {
@@ -85,7 +87,7 @@ export function toast(message, opts = {}) {
     }
   });
 
-  const handle = { dismiss, el };
+  const handle = { dismiss, el, urgent };
   current = handle;
   return handle;
 }

@@ -337,7 +337,7 @@ export function openLogSheet({ mode = 'new', workout = null, date = null, before
     winsRow.innerHTML = chips.map((c) => `<span class="win-chip c-${c.color}${shownChips.has(c.key) ? ' seen' : ''}">${c.html}<span>${esc(c.text)}</span></span>`).join('');
     chips.forEach((c) => shownChips.add(c.key));
     // A save that earns something big gets a gold "Claim" button.
-    const plan = buildPlan(res, { lastEndAt: 0, now: 0 });
+    const plan = buildPlan(res, { lastEndAt: -Infinity, now: 0 }); // no cooldown in the preview
     setClaim(plan.level >= 2 || !!plan.reveal || !!plan.alsoEarned);
   }
 

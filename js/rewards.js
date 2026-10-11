@@ -455,14 +455,20 @@ export function buildPlan(res, { lastEndAt = 0, now = 0, label = () => '' } = {}
 // Hints, compliments, copy
 // ---------------------------------------------------------------------------
 
-const UNIT_TEXT = {
-  workouts: (n) => `${n} more workout${n === 1 ? '' : 's'}`,
-  weeks: (n) => `${n} more week${n === 1 ? '' : 's'} in a row`,
-  days: (n) => `${n} more day${n === 1 ? '' : 's'} in a row`,
-  min: (n) => `${n} min more`,
-  wins: (n) => `${n} more win${n === 1 ? '' : 's'}`,
-  PRs: (n) => `${n} more PR${n === 1 ? '' : 's'}`,
-  'rest days': (n) => `${n} more rest day${n === 1 ? '' : 's'}`,
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** Hint text for counted badges, by what they count (a unit alone can be misleading). */
+const COUNT_TEXT = {
+  nth: (n) => `${plural(n, 'more workout')}`,
+  prs: (n) => `${plural(n, 'more PR')}`,
+  goalWins: (n) => `Crush ${plural(n, 'more goal')}`,
+  ringWeeks: (n) => `Close all 3 rings in ${plural(n, 'more week')}`,
+  feel5: (n) => `${plural(n, 'more “Amazing” workout')}`,
+  hard: (n) => `${plural(n, 'more Hard workout')}`,
+  rest: (n) => `${plural(n, 'more rest day')}`,
+  freezeEarned: () => 'Bank a streak freeze',
+  mix3: () => 'Try 3 different types in one week',
+  photo: () => 'Add a photo to a workout',
 };
 
 /** The badges (and looks) she's closest to: "2 more workouts → Quarter Century". */
@@ -474,19 +480,27 @@ export function nextUp({ progress, counts }, { units = 'mi', limit = 3 } = {}) {
     const left = p.target - p.value;
     const frac = p.value / p.target;
     if (left <= 0) continue;
-    const unit = def.measure.unit;
+    const { kind, key, unit } = def.measure;
+    const near = left <= 3 || frac >= 0.7;
+    const n = Math.ceil(left);
+    const dist = (km) => `${Math.round(kmToUnit(km, units) * 10) / 10} ${units}`;
     let text = null;
-    if (def.measure.kind === 'allTypes') {
+    if (kind === 'allTypes') {
       if (p.tooFew) continue;
-      if (p.missing.length <= 2) text = `Try ${p.missing.join(' and ')} → ${def.name}`;
-    } else if (unit === 'km') {
-      if (frac >= 0.7) text = `${Math.ceil(kmToUnit(left, units) * 10) / 10} ${units} more → ${def.name}`;
-    } else if (unit === 'wins' && def.winTier && (left <= 3 || frac >= 0.7)) {
-      const n = Math.ceil(left);
-      text = `${n} more ${LADDERS[def.winTier].what}${n === 1 ? '' : 's'} → ${def.name}`;
-    } else if (UNIT_TEXT[unit] && (left <= 3 || frac >= 0.7)) {
-      text = `${UNIT_TEXT[unit](Math.ceil(left))} → ${def.name}`;
+      if (p.missing.length <= 2) text = `Try ${p.missing.join(' and ')}`;
+    } else if (kind === 'run' && near) {
+      text = unit === 'days' ? `${plural(n, 'more day')} in a row` : `${plural(n, 'more week')} in a row`;
+    } else if (kind === 'max' && frac >= 0.7) {
+      text = unit === 'km' ? `One ${dist(p.target)} workout` : `One ${p.target}-min workout`;
+    } else if (kind === 'cum' && frac >= 0.7) {
+      text = unit === 'km' ? `${dist(left)} more` : `${n} min more`;
+    } else if (kind === 'gm3' && near) {
+      text = `Win monthly goals ${plural(n, 'more month')} in a row`;
+    } else if (kind === 'count' && near) {
+      if (unit === 'wins' && def.winTier) text = `${plural(n, `more ${LADDERS[def.winTier].what}`)}`;
+      else if (COUNT_TEXT[key]) text = COUNT_TEXT[key](n);
     }
+    if (text) text = `${text} → ${def.name}`;
     if (text) out.push({ id: def.id, text, frac, target: p.target });
   }
   out.sort((a, b) => b.frac - a.frac || a.target - b.target);

@@ -49,7 +49,7 @@ export function winCounts(wins = {}) {
       if (!g) continue;
       if (g.pk.startsWith('W:') && DAY_RE.test(g.pk.slice(2))) put(short, canonWeek(g.pk.slice(2)), w.on);
       else if (g.pk.startsWith('M:')) put(medium, g.pk.slice(2), w.on);
-      else if (g.pk === 'L') put(long, g.id, w.on);
+      else if (g.pk === 'L' && !w.challenge) put(long, g.id, w.on); // challenges have their own badges
     }
   }
   const sorted = (m) => [...m.values()].sort();
@@ -166,6 +166,11 @@ export function facts(state, d, wins, today) {
   const entries = Object.entries(wins || {}).filter(([, w]) => w && DAY_RE.test(w.on));
   F.prs = entries.filter(([k]) => k.startsWith('pr:')).map(([, w]) => w.on).sort();
   F.goalWins = entries.filter(([k]) => k.startsWith('goal:')).map(([, w]) => w.on).sort();
+  // Challenges: every completed one, and per preset (`ch:<preset>`) for its own badge.
+  const challenges = entries.filter(([k, w]) => k.startsWith('goal:') && w.challenge).map(([, w]) => w)
+    .sort((a, b) => a.on.localeCompare(b.on));
+  F.challengeWins = challenges.map((w) => w.on);
+  for (const w of challenges) (F[`ch:${w.challenge}`] ||= []).push(w.on);
   const wc = winCounts(wins);
   F.weeklyWins = wc.dates.short;
   F.monthlyWins = wc.dates.medium;
@@ -263,6 +268,7 @@ function goalWin(p, label) {
   return {
     kind: 'goal', on: p.achievedOn, tier: p.tier, goalId: p.id,
     label: String(label(p.goal) || '').slice(0, 80), metric: p.metric, target: p.target, value: p.value,
+    ...(p.goal?.challenge ? { challenge: p.goal.challenge } : {}),
   };
 }
 
@@ -462,6 +468,7 @@ const COUNT_TEXT = {
   nth: (n) => `${plural(n, 'more workout')}`,
   prs: (n) => `${plural(n, 'more PR')}`,
   goalWins: (n) => `Crush ${plural(n, 'more goal')}`,
+  challengeWins: (n) => `Finish ${plural(n, 'more challenge')}`,
   ringWeeks: (n) => `Close all 3 rings in ${plural(n, 'more week')}`,
   feel5: (n) => `${plural(n, 'more “Amazing” workout')}`,
   hard: (n) => `${plural(n, 'more Hard workout')}`,

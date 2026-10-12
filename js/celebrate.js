@@ -37,6 +37,7 @@ const POOL = {
   medium: ['Month crushed, {name}!', '{Month}: conquered.', 'Monthly goal, done and glowing.'],
   long: ['You did it, {name}!', 'Legend behavior.', 'Dream → done.'],
   pr: ['New PR!', 'Record smashed!'],
+  challenge: ['Challenge complete!', 'Challenge crushed, {name}!', 'Dared it. Did it.'],
 };
 
 export const RECORD_NAMES = {
@@ -63,6 +64,7 @@ export function eventTitle(e) {
         return e.tier === 'short' ? "Last week's goal: done after all"
           : `${month ? monthName(`${month}-01`) : 'Last month'}'s goal: done after all`;
       }
+      if (g?.challenge) return pickLine(e.key, POOL.challenge, { name: userName() });
       const pool = POOL[e.tier] || POOL.short;
       return pickLine(e.key, pool, { name: userName(), Month: month ? monthName(`${month}-01`) : 'This month' });
     }
@@ -80,7 +82,7 @@ export function eventTitle(e) {
 export function eventChip(e) {
   switch (e.kind) {
     case 'pr': return { icon: 'trophy', text: `New PR · ${RECORD_NAMES[e.record]}`, color: 'yellow' };
-    case 'goal': return { icon: 'goals', text: labelOf(e), color: 'lime' };
+    case 'goal': return { icon: goalOf(e)?.challenge ? 'medal' : 'goals', text: labelOf(e), color: goalOf(e)?.challenge ? 'yellow' : 'lime' };
     case 'freeze': return { icon: 'snowflake', text: 'Freeze banked', color: 'blue' };
     case 'allRings': return { icon: 'sparkle', text: 'All rings closed', color: 'pink' };
     case 'weekMet': return { icon: 'flame', text: `Week ${e.streak} locked in`, color: 'pink' };

@@ -69,6 +69,13 @@ None of these numbers are stored. `js/progress.js` computes them from the workou
 - **Year in Glow:** every year with a workout has a recap on the Insights page. It's offered on Home from December 1 to January 31 (for the year just ending), until she watches or dismisses it; that choice is saved with her data (`meta.recapSeen`), so it travels with backups.
 - **Charts and offline:** Chart.js loads from jsDelivr (pinned version with an integrity hash) only when Insights opens. The service worker keeps a copy in a cache that survives updates, so charts work offline after the app has been online once. If it can't load, simple built-in charts show instead with a Retry link. The claude.ai preview has no service worker, so it fetches Chart.js once per visit.
 
+## How challenges work
+
+- **What they are:** a challenge is a long-term goal with a start and end date, tagged with its preset (or `custom`). Progress, celebrations, archiving and backups all reuse the goal code. Challenges live in their own card on Goals; the active ones also show on Home.
+- **Presets:** 30-Day Core, 10 of one kind in a month, Seven-Day Spark, 1,000-Minute Month, 21 Days of Yoga, HIIT the Gas and Marathon Month (shown once she has a distance type). If a preset needs a workout type she doesn't have (like Core), starting it adds that type. Month presets offer next month when fewer than 12 days are left.
+- **Her own:** pick a type (or any), what to count (workouts, minutes, active days or distance), a target, a length (7, 14, 21 or 30 days) and today or tomorrow as the start.
+- **Badges:** every preset has its own badge, and any finished challenge counts toward Challenge Accepted (1), Triple Dare (3) and Challenge Champion (10). Challenges don't count toward Dream Chaser or the long-goal unlocks, so those still mean a big personal goal.
+
 ## Tests
 
 The streak, goal and record logic has unit tests (no dependencies needed):
@@ -129,6 +136,8 @@ js/
   shareCard.js          "Goal crushed!" share image + share sheet
   studio.js, lookParts.js  Glow Studio, Rewards card, mini hold buttons
   lab.js                Celebration lab (5 taps on the version line)
+  challenges.js         Challenge presets and helpers (pure, unit-tested)
+  challengeSheet.js     Challenge picker, preset start sheet and the build-your-own sheet
   insights.js           Insights stats: heatmap levels, trends, best day, feel, year recap (pure, unit-tested)
   heatmap.js            Glow calendar markup (month pages, mini months, week strip)
   charts.js             Chart.js loader, theme and the two chart cards, with built-in fallbacks
@@ -146,7 +155,7 @@ js/
   stats.js, dates.js    Week/month math, streaks, date formatting
   icons.js              Inline SVG icon set
   views/                Home, History, Goals, Profile screens; trophies.js (Trophy Case); insights.js (Insights page)
-tests/                  Unit tests for progress.js, rewards.js, insights.js and schema.js (npm test; npm run test:tz checks other time zones)
+tests/                  Unit tests for progress.js, rewards.js, insights.js, challenges.js and schema.js (npm test; npm run test:tz checks other time zones)
 package.json            Only for `npm test`; the app itself has no build step
 ```
 

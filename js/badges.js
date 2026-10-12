@@ -22,6 +22,7 @@ export const FAMILIES = [
   { id: 'goals', label: 'Goals & rings', b1: 'lime', b2: 'cyan', glyph: 'goals' },
   { id: 'explorer', label: 'Explorer', b1: 'cyan', b2: 'pink', glyph: 'sparkle' },
   { id: 'distance', label: 'Distance', b1: 'orange', b2: 'pink', glyph: 'route' },
+  { id: 'challenges', label: 'Challenges', b1: 'orange', b2: 'yellow', glyph: 'medal' },
   { id: 'secret', label: 'Secret', b1: 'blue', b2: 'purple', glyph: 'sparkle' },
 ];
 
@@ -88,6 +89,18 @@ export const BADGES = [
   B('d10k', 'distance', '10K Club', 'epic', { kind: 'max', key: 'kmMax', target: 10, unit: 'km', tol: true }, { plate: '10K', flavor: 'Ten kilometers. Club member.', how: 'One workout of 10 km (6.2 mi)' }),
   B('dhalf', 'distance', 'Half-Marathon Hero', 'legendary', { kind: 'max', key: 'kmMax', target: 21.0975, unit: 'km', tol: true }, { plate: '21K', flavor: '13.1 miles. Hero status.', how: 'One workout of a half marathon' }),
   B('d100mi', 'distance', 'Hundred Miler', 'epic', { kind: 'cum', key: 'kmCum', target: 160.934, unit: 'km', tol: true }, { plate: '100mi', flavor: 'A hundred miles, one workout at a time.', how: '100 miles (161 km) in total' }),
+
+  // Challenges (Stage 5): the ladder, plus one badge per preset (ids match challenges.js)
+  B('ch1', 'challenges', 'Challenge Accepted', 'common', count('challengeWins', 1, 'challenges'), { flavor: 'Took it on. Finished it.', how: 'Complete any challenge' }),
+  B('ch3', 'challenges', 'Triple Dare', 'rare', count('challengeWins', 3, 'challenges'), { plate: '3', flavor: 'Three challenges, three wins.', how: 'Complete 3 challenges' }),
+  B('ch10', 'challenges', 'Challenge Champion', 'legendary', count('challengeWins', 10, 'challenges'), { glyph: 'crown', plate: '10', flavor: 'Ten challenges. Nothing scares you now.', how: 'Complete 10 challenges' }),
+  B('cp-core30', 'challenges', 'Core of Steel', 'rare', count('ch:core30', 1, 'challenges'), { glyph: 'flame', plate: '30', flavor: 'Thirty days of core. Rock solid.', how: 'Complete the 30-Day Core challenge' }),
+  B('cp-month10', 'challenges', 'Ten Out of Ten', 'common', count('ch:month10', 1, 'challenges'), { glyph: 'calendar', plate: '10', flavor: 'Ten in a month, every one counted.', how: 'Complete a 10-in-a-month challenge' }),
+  B('cp-spark7', 'challenges', 'Seven Sparks', 'rare', count('ch:spark7', 1, 'challenges'), { glyph: 'sparkle', plate: '7', flavor: 'Seven days, seven sparks.', how: 'Complete the Seven-Day Spark' }),
+  B('cp-min1000', 'challenges', 'Thousand-Minute Club', 'epic', count('ch:min1000', 1, 'challenges'), { glyph: 'clock', plate: '1K', flavor: 'A thousand minutes in a month. Wow.', how: 'Complete the 1,000-Minute Month' }),
+  B('cp-yoga21', 'challenges', 'Zen Streak', 'rare', count('ch:yoga21', 1, 'challenges'), { glyph: 'yoga', plate: '21', flavor: 'Breathe in. Breathe out. Badge in.', how: 'Complete 21 Days of Yoga' }),
+  B('cp-hiit12', 'challenges', 'Full Throttle', 'rare', count('ch:hiit12', 1, 'challenges'), { glyph: 'bolt', plate: '12', flavor: 'Twelve HIIT sessions, gas pedal down.', how: 'Complete HIIT the Gas' }),
+  B('cp-marathon', 'challenges', 'Marathon Month', 'epic', count('ch:marathon', 1, 'challenges'), { glyph: 'route', plate: '26.2', flavor: '26.2 miles, one run at a time.', how: 'Complete the Marathon Month' }),
 
   // Secret
   B('early5', 'secret', 'Rise & Shine', 'rare', count('early', 5, 'workouts'), { glyph: 'sun', secret: true, hint: 'Some glows start before sunrise.', flavor: 'Five sunrise sessions. Morning legend.', how: '5 workouts between 4 and 7 a.m.' }),

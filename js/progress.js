@@ -331,7 +331,7 @@ export function goalProgress(g, { today, ws, workouts }) {
 export function featuredGoal(list, pinnedId, today) {
   const pinned = list.find((p) => p.id === pinnedId);
   if (pinned) return pinned;
-  const candidates = list.filter((p) => p.status === 'active'
+  const candidates = list.filter((p) => !p.goal.challenge).filter((p) => p.status === 'active'
     || (p.status === 'met' && (p.tier !== 'long' || daysBetween(p.achievedOn, today) < NEW_PR_DAYS)));
   candidates.sort((a, b) => (a.met - b.met)
     || (TIER_RANK[a.tier] - TIER_RANK[b.tier])

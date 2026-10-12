@@ -35,8 +35,8 @@ const merge = (aw, res) => ({ ...aw, wins: { ...aw.wins, ...res.wins }, badges: 
 
 test('R1 catalog integrity', () => {
   const ids = BADGES.map((b) => b.id);
-  assert.equal(ids.length, 50);
-  assert.equal(new Set(ids).size, 50);
+  assert.equal(ids.length, 60);
+  assert.equal(new Set(ids).size, 60);
   for (const b of BADGES) {
     assert.ok(b.measure && FAMILY_BY_ID.has(b.family), b.id);
     if (b.secret) assert.ok(b.hint, `${b.id} needs a hint`);
@@ -56,7 +56,7 @@ test('R1 catalog integrity', () => {
     }
   }
   const counts = BADGES.reduce((m, b) => ({ ...m, [b.rarity]: (m[b.rarity] || 0) + 1 }), {});
-  assert.deepEqual(counts, { common: 16, rare: 17, epic: 12, legendary: 5 });
+  assert.deepEqual(counts, { common: 18, rare: 22, epic: 14, legendary: 6 });
 });
 
 test('R2 evaluate counts and daily streak dates', () => {

@@ -64,6 +64,7 @@ export const GOAL_LIMITS = {
   longestDistance: { min: 0.1, max: 1000, fallback: 5 },
 };
 const DAYS_MAX = { short: 7, medium: 31, long: 3660 };
+const CHALLENGE_ID = /^[a-z0-9-]{1,24}$/;
 
 /** Clamp a goal target for its metric and tier. */
 export function clampGoalTarget(metric, tier, value) {
@@ -103,6 +104,8 @@ export function normalizeGoal(g, today = todayKey()) {
     createdAt,
     updatedAt: isIso(g.updatedAt) ? g.updatedAt : createdAt,
     archivedAt: isIso(g.archivedAt) ? g.archivedAt : null,
+    // Stage 5: a challenge is a long goal tagged with its preset id (or 'custom').
+    ...(tier === 'long' && typeof g.challenge === 'string' && CHALLENGE_ID.test(g.challenge) ? { challenge: g.challenge } : {}),
   };
 }
 

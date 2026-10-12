@@ -6,7 +6,7 @@ import { icon } from '../icons.js';
 import { esc, fmtNum, plural, fmtDistance } from '../util.js';
 import {
   dateKey, todayKey, addDays, addDaysKey, startOfWeek, weekdayShort, fmtLongDate, fmtWeekRange,
-  fmtAgo, fmtDayLabel, greeting,
+  fmtAgo, fmtDayLabel, fmtShortDate, parseKey, greeting,
 } from '../dates.js';
 import { monthStats, groupByDate } from '../stats.js';
 import {
@@ -14,6 +14,8 @@ import {
 } from '../components.js';
 import { navigate } from '../router.js';
 import { openLogSheet } from '../logSheet.js';
+import { openChallengePicker } from '../challengeSheet.js';
+import { isChallenge, challengeLook } from '../challenges.js';
 import { startExport } from '../backupFlow.js';
 import { openSheet } from '../sheet.js';
 import { toast } from '../toast.js';
@@ -203,6 +205,8 @@ export function renderHome(el) {
 
     <div class="tiles">${lastTile}${monthTile}${goalTile}${bestTile}</div>
 
+    ${challengesHomeHTML(d)}
+
     ${insightsTeaserHTML()}
   `;
 
@@ -303,6 +307,43 @@ function weeklyBarsForMonth(workouts, now) {
   }
   const max = Math.max(60, ...bars.map((b) => b.mins));
   return bars.map((b) => `<i class="${b.future || !b.mins ? 'future' : ''}" style="height:${Math.max(8, Math.round((b.mins / max) * 100))}%"></i>`).join('');
+}
+
+/**
+ * Up to two running challenges (soonest to finish first), or, if she has never tried one,
+ * a one-line invite to the picker. Nothing otherwise.
+ */
+function challengesHomeHTML(d) {
+  const rank = (p) => (p.status === 'active' ? p.daysLeft ?? 0 : 1e6);
+  const list = d.goals
+    .filter((p) => isChallenge(p.goal) && !p.goal.archivedAt && (p.status === 'active' || p.status === 'upcoming'))
+    .sort((a, b) => rank(a) - rank(b))
+    .slice(0, 2);
+  if (!list.length) {
+    if (store.state.goals.some(isChallenge)) return '';
+    return `
+    <button type="button" class="card chal-invite" data-action="open-challenges">
+      <span class="type-badge c-orange">${icon('medal')}</span>
+      <span class="chal-invite-text"><b>New: Challenges</b><span class="muted"> · goals with their own badges</span></span>
+      ${icon('chevronRight')}
+    </button>`;
+  }
+  return `
+    <article class="card chal-home" aria-label="Challenges">
+      <div class="card-head"><span class="label">Challenges</span></div>
+      <div class="target-list">${list.map((p) => {
+        const look = challengeLook(p.goal, store.typeById.bind(store));
+        const when = p.status === 'upcoming' ? `Starts ${fmtShortDate(parseKey(p.from))}` : `${plural(p.daysLeft ?? 0, 'day')} left`;
+        return `
+        <button type="button" class="goal-row ${p.status}" data-action="goto-goal" data-id="${esc(p.id)}">
+          <span class="goal-top">
+            <span class="target-name"><span class="chal-ico c-${look.color}">${icon(look.icon)}</span><span class="goal-name">${esc(goalLabel(p.goal))}</span></span>
+            <span class="muted small">${esc(when)}</span>
+          </span>
+          <span class="bar c-${look.color}"><i style="width:${Math.floor(p.pct * 100)}%"></i></span>
+        </button>`;
+      }).join('')}</div>
+    </article>`;
 }
 
 /** A gentle reminder to export a backup once there's data worth protecting. */
@@ -406,6 +447,9 @@ function bindHome(el) {
         break;
       case 'goto-goal':
         navigate('goals', { goal: btn.dataset.id });
+        break;
+      case 'open-challenges':
+        openChallengePicker();
         break;
       case 'goto-records':
         navigate('goals', { section: 'records' });

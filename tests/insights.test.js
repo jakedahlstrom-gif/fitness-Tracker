@@ -2,7 +2,7 @@
 // (and npm run test:tz, which repeats this file in two odd time zones). No dependencies needed.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { derive } from '../js/progress.js';
 import {
   dayNum, keyOf, weekdayOf, buildIndex, heatScale, heatLevel, heatRamp, HEAT_RAMP, monthGrid, yearStrip,
@@ -477,7 +477,12 @@ test('I33 Chart.js is pinned, cached across releases and precached files exist',
   const cache = sw.match(/CACHE_VERSION = '([^']+)'/)[1];
   const cdn = sw.match(/CDN_CACHE = '([^']+)'/)[1];
   assert.ok(!cdn.startsWith(cache));
-  for (const f of sw.match(/'\.\/(?:css|js)\/[^']+'/g)) {
-    assert.ok(existsSync(new URL(`../${f.slice(3, -1)}`, import.meta.url)), `missing ${f}`);
+  const shell = sw.match(/'\.\/(?:css|js)\/[^']+'/g).map((f) => f.slice(3, -1));
+  for (const f of shell) assert.ok(existsSync(new URL(`../${f}`, import.meta.url)), `missing ${f}`);
+  // …and every app file is precached, so a new module can't break the app offline.
+  for (const dir of ['css', 'js', 'js/views']) {
+    for (const f of readdirSync(new URL(`../${dir}/`, import.meta.url)).filter((x) => /\.(js|css)$/.test(x))) {
+      assert.ok(shell.includes(`${dir}/${f}`), `${dir}/${f} is not in APP_SHELL`);
+    }
   }
 });

@@ -1,0 +1,66 @@
+/* ---- Challenges ---------------------------------------------------------
+   Picker cards, the start/build sheet, the Goals card and the Home card.
+   Rows reuse .goal-row, .bar, .chip and .type-badge; colors come from .c-<name>. */
+
+.chal-ico { display: inline-grid; place-items: center; flex: none; color: var(--c); }
+.chal-ico .icon { width: 18px; height: 18px; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--c) calc(var(--glow-a) * 100%), transparent)); }
+
+/* Picker */
+.chal-list { display: flex; flex-direction: column; gap: 10px; }
+.chal-card, .chal-intro, .chal-earn {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+}
+.chal-card > .btn, .chal-card > .pill { align-self: center; flex: none; }
+.chal-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.chal-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.chal-meta { display: flex; align-items: center; gap: 5px; }
+.chal-meta .icon { width: 14px; height: 14px; flex: none; }
+.chal-earn-name { color: var(--c); font-weight: 650; }
+
+/* Start / build sheet */
+.chal-intro .type-badge { align-self: center; }
+.chal-earn { align-items: center; }
+.chal-earn .badge-art { flex: none; }
+.chal-form .seg { padding: 0 4px; }
+/* Room for four digits (1000 min) and "workouts" at 320px wide. */
+.chal-form .stepper { gap: 8px; }
+.chal-form .stepper-value { min-width: 0; gap: 4px; padding: 6px 8px; }
+.chal-form .stepper-value input { width: 4ch; min-width: 0; font-size: 28px; }
+
+/* Goals card */
+.chal-browse { color: var(--cyan); min-height: 32px; padding: 0 8px; margin: -4px -8px -4px 0; }
+.chal-actions { display: flex; flex-wrap: wrap; gap: 0 16px; }
+.chal-actions .add-goal { padding-right: 0; }
+.chal-past { margin-top: 14px; border-top: 1px solid var(--border); }
+.chal-past summary {
+  padding: 12px 0;
+  color: var(--text-2); font-size: 14px; font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.chal-past summary::-webkit-details-marker { display: none; }
+.chal-past summary::after { content: '+'; color: var(--text-3); font-size: 18px; }
+.chal-past[open] summary::after { content: '−'; }
+.chal-past .target-list { padding-bottom: 4px; }
+
+/* Home */
+.chal-home .target-list { gap: 14px; }
+.chal-home .goal-row .muted { flex: none; }
+.chal-invite {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  color: var(--text);
+  text-align: left;
+  transition: transform .15s ease, border-color .2s;
+}
+.chal-invite:active { transform: scale(.98); border-color: var(--border-strong); }
+.chal-invite .type-badge { width: 34px; height: 34px; border-radius: 10px; }
+.chal-invite .type-badge .icon { width: 19px; height: 19px; }
+.chal-invite-text { flex: 1; min-width: 0; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chal-invite > .icon { width: 18px; height: 18px; color: var(--text-3); flex: none; }

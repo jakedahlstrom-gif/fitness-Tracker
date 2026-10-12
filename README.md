@@ -10,7 +10,7 @@ Plain HTML, CSS and JavaScript (ES modules), with no build step and no dependenc
 - [x] **Stage 2: Goals and motivation.** Weekly / monthly / long-term goals with progress bars (create, edit, archive); weekly rings that pop when they close; weekly streak with freezes and a daily streak with rest days; five personal records flagged the moment you set them.
 - [x] **Stage 3: Celebrations and rewards.** Celebrations sized to the win (a pop, confetti cannons, or full-screen fireworks), 50 badges in a Trophy Case, unlockable themes and hold-button styles in the Glow Studio, and a "Goal crushed!" share card.
 - [x] **Stage 4: Insights.** A Glow calendar heatmap (month and year views), trends with Chart.js (minutes per week, workout mix), her best day and how each type feels, and a swipeable "Your Year in Glow" recap with a shareable card.
-- [ ] **Stage 5: Extras.** Reminders, challenges, couple mode.
+- [ ] **Stage 5: Extras.** Reminders, challenges, couple mode. (Challenges are done.)
 
 ## Open it
 

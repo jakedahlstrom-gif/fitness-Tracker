@@ -14,6 +14,8 @@ import {
 } from '../components.js';
 import { openSheet, confirmDialog } from '../sheet.js';
 import { openLogSheet } from '../logSheet.js';
+import { openChallengePicker, openChallengeSheet, presetTitle } from '../challengeSheet.js';
+import { PRESET_BY_ID, isChallenge, challengeLook } from '../challenges.js';
 import { navigate } from '../router.js';
 import { toast } from '../toast.js';
 import { haptic } from '../effects.js';
@@ -46,7 +48,8 @@ export function renderGoals(el, params = {}) {
   const weekLast = addDaysKey(d.weekKey, 6);
   const progress = new Map(d.goals.map((p) => [p.id, p]));
   const byTier = { short: [], medium: [], long: [] };
-  for (const g of store.goals()) byTier[g.tier].push(progress.get(g.id));
+  const challenges = [];
+  for (const g of store.goals()) (isChallenge(g) ? challenges : byTier[g.tier]).push(progress.get(g.id));
   const monthEnd = dateKey(new Date(parseKey(today).getFullYear(), parseKey(today).getMonth() + 1, 0));
   const monthName = parseKey(today).toLocaleDateString(undefined, { month: 'long' });
   const current = { workouts: d.week.count, minutes: d.week.minutes, days: d.week.activeDays };
@@ -116,6 +119,8 @@ export function renderGoals(el, params = {}) {
       <button type="button" class="btn btn-small btn-ghost add-goal" data-action="new-goal" data-tier="long">${icon('plus')} Add long-term goal</button>
     </article>
 
+    ${challengesCardHTML(challenges, today)}
+
     ${trendsTeaserHTML()}
     ${rewardsCardHTML()}
     ${streaksCardHTML(d)}
@@ -176,17 +181,57 @@ function statusLine(p) {
 
 function goalRowHTML(p) {
   if (!p) return '';
-  const color = METRIC_COLOR[p.metric];
+  const look = isChallenge(p.goal) ? challengeLook(p.goal, store.typeById.bind(store)) : null; // challenges wear their own icon
+  const color = look ? look.color : METRIC_COLOR[p.metric];
   const pct = Math.floor(p.pct * 100);
   return `
     <button type="button" class="goal-row ${p.status}" id="goal-${esc(p.id)}" data-action="edit-goal" data-id="${esc(p.id)}">
       <span class="goal-top">
-        <span class="target-name"><i class="dot c-${color}"></i><span class="goal-name">${esc(goalLabel(p.goal))}</span></span>
+        <span class="target-name">${look ? `<span class="chal-ico c-${color}">${icon(look.icon)}</span>` : `<i class="dot c-${color}"></i>`}<span class="goal-name">${esc(goalLabel(p.goal))}</span></span>
         <span class="goal-pct c-${color}">${p.met ? icon('check') : `${pct}%`}</span>
       </span>
       <span class="bar c-${color}"><i style="width:${pct}%"></i></span>
       <span class="muted small">${esc(statusLine(p))}</span>
     </button>`;
+}
+
+// ---- Challenges ----
+
+/** Active and upcoming challenges, plus ones that finished in the last two weeks, are shown; older ones fold away. */
+const RECENT_DAYS = 14;
+
+function challengesCardHTML(list, today) {
+  const shown = [];
+  const past = [];
+  for (const p of list) {
+    const live = p.status === 'active' || p.status === 'upcoming';
+    const recent = [p.achievedOn, p.goal.end].some((k) => k && daysBetween(k, today) <= RECENT_DAYS);
+    (live || recent ? shown : past).push(p);
+  }
+  const chip = (id) => {
+    const preset = PRESET_BY_ID.get(id);
+    return `<button type="button" class="chip c-${preset.color}" data-action="start-challenge" data-preset="${id}">${icon(preset.icon)} ${esc(presetTitle(preset, today))}</button>`;
+  };
+  return `
+    <article class="card" id="challenges">
+      <div class="card-head">
+        <span class="label">Challenges</span>
+        <button type="button" class="btn btn-small btn-ghost chal-browse" data-action="browse-challenges">Browse</button>
+      </div>
+      ${shown.length
+        ? `<div class="target-list">${shown.map(goalRowHTML).join('')}</div>`
+        : `<p class="muted small">A goal with a deadline and its own badge.</p>
+           <div class="chip-row">${['core30', 'month10', 'spark7'].map(chip).join('')}</div>`}
+      ${past.length ? `
+      <details class="chal-past">
+        <summary>Past challenges (${past.length})</summary>
+        <div class="target-list">${past.map(goalRowHTML).join('')}</div>
+      </details>` : ''}
+      <div class="chal-actions">
+        <button type="button" class="btn btn-small btn-ghost add-goal" data-action="browse-challenges">${icon('medal')} Browse challenges</button>
+        <button type="button" class="btn btn-small btn-ghost add-goal" data-action="custom-challenge">${icon('plus')} Create your own</button>
+      </div>
+    </article>`;
 }
 
 // ---- Templates ----
@@ -319,6 +364,15 @@ function bindGoals(el) {
       case 'template':
         openGoalSheet({ mode: 'new', preset: template(btn.dataset.template).goal });
         break;
+      case 'browse-challenges':
+        openChallengePicker();
+        break;
+      case 'custom-challenge':
+        openChallengeSheet({ preset: null });
+        break;
+      case 'start-challenge':
+        openChallengeSheet({ preset: PRESET_BY_ID.get(btn.dataset.preset) });
+        break;
       case 'edit-goal': {
         const g = store.getGoal(btn.dataset.id);
         if (g) openGoalSheet({ mode: 'edit', goal: g });
@@ -375,7 +429,7 @@ export function openGoalSheet({ mode = 'new', goal = null, preset = null } = {})
   let finished = false;
 
   const sheet = openSheet({
-    title: mode === 'new' ? 'New goal' : 'Edit goal',
+    title: mode === 'new' ? 'New goal' : goal?.challenge ? 'Edit challenge' : 'Edit goal',
     body: '<div class="goal-form"></div>',
     footer: mode === 'new'
       ? `<button type="button" class="btn btn-ghost" data-close>Cancel</button>

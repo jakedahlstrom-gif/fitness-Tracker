@@ -3,7 +3,7 @@
 // When you deploy changes, bump CACHE_VERSION. Phones will download the new files
 // in the background and show an "Update" prompt the next time the app is opened.
 
-const CACHE_VERSION = 'glow-v1.4.0';
+const CACHE_VERSION = 'glow-v1.5.0';
 
 // Third-party files (Chart.js for Insights) live in their own cache that survives app
 // releases: the URLs are version-pinned, so an entry never goes stale. Only exact
@@ -51,6 +51,8 @@ const APP_SHELL = [
   './js/progress.js',
   './js/recap.js',
   './js/rewards.js',
+  './js/reminderFlow.js',
+  './js/reminders.js',
   './js/rewardsFlow.js',
   './js/router.js',
   './js/schema.js',
@@ -144,7 +146,8 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
 
   // Page loads: serve the cached app shell (works offline), fall back to network.
-  if (request.mode === 'navigate') {
+  // (Calendar files for the daily nudge are real downloads, not pages.)
+  if (request.mode === 'navigate' && !url.pathname.endsWith('.ics')) {
     event.respondWith(
       caches.match('./index.html').then((cached) => cached || fetch(request)),
     );

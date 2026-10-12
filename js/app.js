@@ -15,6 +15,7 @@ import { renderGoals } from './views/goals.js';
 import { renderProfile } from './views/profile.js';
 import { renderInsights, leaveInsights, setInsightsBack } from './views/insights.js';
 import { syncLook, initRewardsFlow } from './rewardsFlow.js';
+import { initReminders } from './reminderFlow.js';
 import { dismissBanner } from './celebrate.js';
 
 const VIEWS = {
@@ -197,6 +198,7 @@ function registerServiceWorker() {
 show(...parseHash(location.hash || '#home'));
 document.body.classList.add('ready');
 initRewardsFlow();
+initReminders();
 
 // The Home gift pill waits for celebrations to finish, so refresh when one ends.
 document.addEventListener('glow:celebration-end', () => { if (current === 'home') show('home'); });

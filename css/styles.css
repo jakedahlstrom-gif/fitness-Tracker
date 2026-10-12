@@ -498,6 +498,8 @@ button.tile:active { transform: scale(.97); border-color: var(--border-strong); 
 }
 .input:focus { border-color: var(--cyan); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cyan) 18%, transparent); }
 textarea.input { resize: vertical; min-height: 64px; line-height: 1.4; }
+.input.input-small { width: auto; min-height: 40px; padding: 6px 12px; }
+.reminder-cal { margin: 4px 0 6px; text-decoration: none; }
 .input::placeholder { color: var(--text-3); }
 
 /* ---- Tab bar & hold button ---------------------------------------------- */

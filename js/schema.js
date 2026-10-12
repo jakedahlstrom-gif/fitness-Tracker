@@ -2,6 +2,7 @@
 // (current data, older versions, a backup file) into the current shape. It's pure
 // and idempotent, so it's also how old data is migrated (tests/progress.test.js).
 
+import { DEFAULT_REMINDER, normalizeReminder } from './reminders.js';
 import { uid, clamp } from './util.js';
 import { dateKey, parseKey, todayKey } from './dates.js';
 
@@ -174,6 +175,7 @@ function defaultSettings() {
     palette: 'glow', // unlockable look (resolved against what's unlocked when applied)
     skin: 'classic',
     celebrations: 'full', // 'full' | 'calm'
+    reminder: { ...DEFAULT_REMINDER }, // daily nudge (Stage 5)
   };
 }
 
@@ -271,6 +273,7 @@ export function normalize(raw, today = todayKey()) {
   s.palette = LOOK_ID.test(s.palette) ? s.palette : 'glow';
   s.skin = LOOK_ID.test(s.skin) ? s.skin : 'classic';
   s.celebrations = s.celebrations === 'calm' ? 'calm' : 'full';
+  s.reminder = normalizeReminder(raw.settings?.reminder);
 
   let goals;
   if (Array.isArray(raw.goals)) {

@@ -10,7 +10,7 @@ Plain HTML, CSS and JavaScript (ES modules), with no build step and no dependenc
 - [x] **Stage 2: Goals and motivation.** Weekly / monthly / long-term goals with progress bars (create, edit, archive); weekly rings that pop when they close; weekly streak with freezes and a daily streak with rest days; five personal records flagged the moment you set them.
 - [x] **Stage 3: Celebrations and rewards.** Celebrations sized to the win (a pop, confetti cannons, or full-screen fireworks), 50 badges in a Trophy Case, unlockable themes and hold-button styles in the Glow Studio, and a "Goal crushed!" share card.
 - [x] **Stage 4: Insights.** A Glow calendar heatmap (month and year views), trends with Chart.js (minutes per week, workout mix), her best day and how each type feels, and a swipeable "Your Year in Glow" recap with a shareable card.
-- [ ] **Stage 5: Extras.** Reminders, challenges, couple mode. (Challenges are done.)
+- [x] **Stage 5: Extras.** Challenges and a daily nudge. (Couple mode was dropped.)
 
 ## Open it
 
@@ -76,6 +76,14 @@ None of these numbers are stored. `js/progress.js` computes them from the workou
 - **Her own:** pick a type (or any), what to count (workouts, minutes, active days or distance), a target, a length (7, 14, 21 or 30 days) and today or tomorrow as the start.
 - **Badges:** every preset has its own badge, and any finished challenge counts toward Challenge Accepted (1), Triple Dare (3) and Challenge Champion (10). Challenges don't count toward Dream Chaser or the long-goal unlocks, so those still mean a big personal goal.
 
+## How the daily nudge works
+
+- **Why two halves:** a web app can't wake itself at a set time (on iPhone, even from the Home Screen, a notification needs a push server). So the free version splits it:
+  - **In the app:** with the nudge on (Profile → Daily nudge), opening Glow after her time with nothing logged and no rest day shows one gentle toast a day. It's remembered per device.
+  - **On the phone:** "Add to Calendar" opens `reminders/glow-HHMM.ics`, a repeating daily event with an alert at her time, so her phone reminds her even when Glow is closed. To change the time, add the new one and delete the old event; to stop, delete the event.
+- **The calendar files** are static, one per half hour from 5:00 AM to 10:30 PM. `node tools/make-reminders.mjs` rewrites them after a change to `js/reminders.js` (a test checks they match).
+- **Later:** real push notifications would need a small server (for example a Cloudflare Worker on the free plan) that sends a Web Push at her time.
+
 ## Tests
 
 The streak, goal and record logic has unit tests (no dependencies needed):
@@ -138,6 +146,8 @@ js/
   lab.js                Celebration lab (5 taps on the version line)
   challenges.js         Challenge presets and helpers (pure, unit-tested)
   challengeSheet.js     Challenge picker, preset start sheet and the build-your-own sheet
+  reminders.js          Daily nudge: times, calendar file text, when to nudge (pure, unit-tested)
+  reminderFlow.js       The in-app nudge toast
   insights.js           Insights stats: heatmap levels, trends, best day, feel, year recap (pure, unit-tested)
   heatmap.js            Glow calendar markup (month pages, mini months, week strip)
   charts.js             Chart.js loader, theme and the two chart cards, with built-in fallbacks
@@ -155,7 +165,8 @@ js/
   stats.js, dates.js    Week/month math, streaks, date formatting
   icons.js              Inline SVG icon set
   views/                Home, History, Goals, Profile screens; trophies.js (Trophy Case); insights.js (Insights page)
-tests/                  Unit tests for progress.js, rewards.js, insights.js, challenges.js and schema.js (npm test; npm run test:tz checks other time zones)
+tests/                  Unit tests for progress.js, rewards.js, insights.js, challenges.js, reminders.js and schema.js (npm test; npm run test:tz checks other time zones)
+reminders/              Daily-nudge calendar files (made by tools/make-reminders.mjs)
 package.json            Only for `npm test`; the app itself has no build step
 ```
 

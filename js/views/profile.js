@@ -13,11 +13,10 @@ import { toast } from '../toast.js';
 import { applyTheme } from '../theme.js';
 import { haptic, sound, unlockAudio } from '../effects.js';
 import { TYPE_COLORS } from '../store.js';
-import { REMINDER_TIMES, timeLabel, icsPath } from '../reminders.js';
 import { trophyCardHTML, bindTrophyCard } from './trophies.js';
 import { studioCardHTML, bindStudioCard } from '../studio.js';
 
-export const APP_VERSION = '1.5.0 · Stage 5';
+export const APP_VERSION = '1.5.1 · Stage 5';
 
 let installPrompt = null; // Chrome/Android "beforeinstallprompt" event
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -98,21 +97,6 @@ export function renderProfile(el) {
       </div>
       <p class="muted small set-note">Calm skips fireworks and halves confetti.</p>
 
-      <div class="set-row">
-        <span class="set-label">${icon('clock')} Daily nudge</span>
-        ${toggle('reminder', s.reminder.on, 'Daily nudge')}
-      </div>
-      ${s.reminder.on ? `
-      <div class="set-row">
-        <span class="set-label">Nudge me at</span>
-        <select class="input input-small" name="reminder-time" aria-label="Nudge time">
-          ${REMINDER_TIMES.map((t) => `<option value="${t}"${t === s.reminder.time ? ' selected' : ''}>${timeLabel(t)}</option>`).join('')}
-        </select>
-      </div>
-      ${isEmbedded() ? '' : `<a class="btn btn-secondary btn-block reminder-cal" href="${icsPath(s.reminder.time)}" target="_blank" rel="noopener">${icon('calendar')} Add to Calendar</a>`}
-      <p class="muted small set-note">Opening Glow after ${timeLabel(s.reminder.time)} with nothing logged shows a gentle nudge. For a phone alert even when Glow is closed, add it to your calendar (changed the time? add it again and delete the old event).</p>` : `
-      <p class="muted small set-note">A gentle daily reminder at a time you pick.</p>`}
-
       <button type="button" class="set-row set-link" data-action="types">
         <span class="set-label">${icon('dumbbell')} Workout types</span>
         <span class="muted">${store.types().length} ${icon('chevronRight')}</span>
@@ -182,11 +166,6 @@ function bindProfile(el) {
   el.dataset.bound = '1';
 
   el.addEventListener('change', (e) => {
-    if (e.target.name === 'reminder-time') {
-      store.updateSettings({ reminder: { ...store.settings.reminder, time: e.target.value } });
-      toast(`Nudge time: ${timeLabel(e.target.value)}`);
-      return;
-    }
     if (e.target.name === 'name') {
       store.updateSettings({ name: e.target.value.trim().slice(0, 30) || 'Melinda' });
       toast('Name saved');
@@ -218,9 +197,6 @@ function bindProfile(el) {
       case 'haptics':
         store.updateSettings({ haptics: !s.haptics });
         haptic('success');
-        break;
-      case 'reminder':
-        store.updateSettings({ reminder: { ...s.reminder, on: !s.reminder.on } });
         break;
       case 'celebrations':
         store.updateSettings({ celebrations: btn.dataset.value === 'calm' ? 'calm' : 'full' });
